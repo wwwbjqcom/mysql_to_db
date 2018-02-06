@@ -32,6 +32,10 @@ class OperationDB:
         self.conn = InitMyDB(mysql_host=self.host, mysql_port=self.port, mysql_user=self.user,
                               mysql_password=self.passwd, unix_scoket=self.unix_socket).Init()
 
+        self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
+                                    mysql_password=self.dpasswd).Init()
+
+        self.destination_cur = self.destination_conn.cursor()
 
 
 
@@ -159,6 +163,7 @@ class OperationDB:
     def Operation(self):
         Logging(msg='replication to master.............', level='info')
         ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn).ReadPack()
+        event_length = None
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
             while True:
@@ -167,25 +172,31 @@ class OperationDB:
                         pkt = ReplConn.read_packet()
                     else:
                         pkt = ReplConn._read_packet()
+                    at_pos = self.start_position + event_length if event_length else self.start_position
                     _parse_event = ParseEvent(packet=pkt,remote=True)
                     event_code, event_length = _parse_event.read_header()
                     if event_code is None:
                         continue
-                    at_pos = self.start_position
-                    next_pos = self.start_position + event_length
+                    next_pos = at_pos + event_length
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
                         if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
                             if self.tables:
                                 if tmepdata.table_name in self.tables:
                                     _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,cloums_type_id_list=tmepdata.cloums_type_id_list,metadata_dict=tmepdata.metadata_dict)
                                     self.GetSQL(_values=_values, event_code=event_code)
-                                    print tmepdata.transaction_sql_list
+                                    state = self.__put_new_db()
+                                    if state is None:
+                                        Logging(msg='failed!!!!', level='error')
+                                        break
                             else:
                                 _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
                                                                 cloums_type_id_list=tmepdata.cloums_type_id_list,
                                                                 metadata_dict=tmepdata.metadata_dict)
                                 self.GetSQL(_values=_values, event_code=event_code)
-                                print tmepdata.transaction_sql_list
+                                state = self.__put_new_db()
+                                if state is None:
+                                    Logging(msg='failed!!!!', level='error')
+                                    break
                             tmepdata.transaction_sql_list = []
                     elif event_code == binlog_events.TABLE_MAP_EVENT:
                         tmepdata.database_name, tmepdata.table_name, tmepdata.cloums_type_id_list, tmepdata.metadata_dict=_parse_event.GetValue(type_code=event_code,event_length=event_length)  # 获取event数据
@@ -197,4 +208,18 @@ class OperationDB:
                 Logging(msg='execute binlog position : {}, next position: {}'.format(at_pos,next_pos), level='info')
         else:
             Logging(msg='replication failed................', level='error')
+
+    def __put_new_db(self):
+
+        for sql in tmepdata.transaction_sql_list:
+            try:
+                self.destination_cur.execute(sql)
+            except:
+                self.destination_conn.rollback()
+                return None
+        self.destination_conn.commit()
+        return True
+
+
+
 
