@@ -157,10 +157,18 @@ class OperationDB:
                         ReplConn.close()
                         break
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
-                        if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases and tmepdata.table_name in self.tables:
-                            _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,cloums_type_id_list=tmepdata.cloums_type_id_list,metadata_dict=tmepdata.metadata_dict)
-                            self.GetSQL(_values=_values,event_code=event_code)
-                            print tmepdata.transaction_sql_list
+                        if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
+                            if self.tables:
+                                if tmepdata.table_name in self.tables:
+                                    _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,cloums_type_id_list=tmepdata.cloums_type_id_list,metadata_dict=tmepdata.metadata_dict)
+                                    self.GetSQL(_values=_values, event_code=event_code)
+                                    print tmepdata.transaction_sql_list
+                            else:
+                                _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
+                                                                cloums_type_id_list=tmepdata.cloums_type_id_list,
+                                                                metadata_dict=tmepdata.metadata_dict)
+                                self.GetSQL(_values=_values, event_code=event_code)
+                                print tmepdata.transaction_sql_list
                             tmepdata.transaction_sql_list = []
                     elif event_code == binlog_events.TABLE_MAP_EVENT:
                         tmepdata.database_name, tmepdata.table_name, tmepdata.cloums_type_id_list, tmepdata.metadata_dict=_parse_event.GetValue(type_code=event_code,event_length=event_length)  # 获取event数据

@@ -19,7 +19,7 @@ class Entrance(Metadata.TableMetadata):
         self.socket = kargs['socket']
 
         self.databases = kargs['databases'].split(',')
-        self.tables = kargs['tables'].split(',')
+        self.tables = kargs['tables'].split(',') if 'tables' in kargs else None
 
         self.d_host = kargs['dhost']
         self.d_port = kargs['dport']

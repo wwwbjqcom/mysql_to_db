@@ -7,7 +7,7 @@ import decimal
 import struct
 import sys
 sys.path.append("..")
-from Binlog import  Metadata
+from binlog import  Metadata
 
 
 class Read(object):
