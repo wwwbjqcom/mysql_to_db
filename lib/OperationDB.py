@@ -4,6 +4,7 @@
 '''
 import sys,pymysql,traceback
 from Loging import Logging
+from InitDB import InitMyDB
 sys.path.append("..")
 from binlog.Replication import ReplicationMysql
 from binlog.ParseEvent import ParseEvent
@@ -20,12 +21,18 @@ class tmepdata:
 
 class OperationDB:
     def __init__(self,**kwargs):
+        self.host,self.port,self.user,self.passwd = kwargs['host'],kwargs['port'],kwargs['user'],kwargs['passwd']
+        self.unix_socket = kwargs['socket']
+        self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']
         self.databases = kwargs['databases']
         self.tables = kwargs['tables']
         self.binlog_file = kwargs['binlog_file']
         self.start_position = kwargs['start_position']
-        self.conn = kwargs['source_conn']
-        self.destination_conn = kwargs['destination_conn']
+        self.mysql_conn = InitMyDB(mysql_host=self.host, mysql_port=self.port, mysql_user=self.user,
+                              mysql_password=self.passwd, unix_scoket=self.unix_socket).Init()
+
+
+
 
     def WhereJoin(self,values,table_struce_key):
         __tmp = []
@@ -86,7 +93,7 @@ class OperationDB:
     def GetSQL(self,_values=None,event_code=None):
         table_struce_key = '{}:{}'.format(tmepdata.database_name,tmepdata.table_name)
         if table_struce_key not in tmepdata.table_struct_list:
-            column_list, pk_idex = GetStruct(mysql_conn=self.conn).GetColumn(tmepdata.database_name,tmepdata.table_name)
+            column_list, pk_idex = GetStruct(host=self.host,port=self.port,user=self.user,passwd=self.passwd).GetColumn(tmepdata.database_name,tmepdata.table_name)
             tmepdata.table_struct_list[table_struce_key] = column_list
             tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
 
