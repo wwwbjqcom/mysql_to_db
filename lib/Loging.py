@@ -3,7 +3,7 @@
 @author: xiaozhong
 '''
 import logging
-logging.basicConfig(filename='mha_server.log',
+logging.basicConfig(filename='server.log',
                     level=logging.INFO,
                     format  = '%(asctime)s  %(filename)s : %(levelname)s  %(message)s',
                     datefmt='%Y-%m-%d %A %H:%M:%S')

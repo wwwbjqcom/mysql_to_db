@@ -5,7 +5,6 @@
 import sys
 sys.path.append("..")
 from binlog import Metadata
-from GetBinlog import GetBinlog
 from OperationDB import OperationDB
 from InitDB import InitMyDB
 
@@ -28,8 +27,6 @@ class Entrance(Metadata.TableMetadata):
         self.d_passwd = kargs['dpasswd']
 
     def __enter__(self):
-        GetBinlog(binlog_file=self.binlog_file, start_position=self.start_position,
-                  socket_client=self.client)
 
         mysql_conn = InitMyDB(mysql_host=self.host,mysql_port=self.port,mysql_user=self.user,mysql_password=self.passwd,unix_scoket=self.socket).Init()
         destination_conn = InitMyDB(mysql_host=self.d_host,mysql_port=self.d_port,mysql_user=self.d_user,mysql_password=self.d_passwd).Init()

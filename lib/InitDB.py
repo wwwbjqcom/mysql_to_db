@@ -6,7 +6,6 @@
 import pymysql,sys
 import traceback
 sys.path.append("..")
-from config.get_config import GetConf
 from Loging import Logging
 from contextlib import closing
 
