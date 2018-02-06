@@ -31,7 +31,7 @@ class Entrance(Metadata.TableMetadata):
         mysql_conn = InitMyDB(mysql_host=self.host,mysql_port=self.port,mysql_user=self.user,mysql_password=self.passwd,unix_scoket=self.socket).Init()
         destination_conn = InitMyDB(mysql_host=self.d_host,mysql_port=self.d_port,mysql_user=self.d_user,mysql_password=self.d_passwd).Init()
         if mysql_conn and destination_conn:
-            OperationDB(databases=self.databases,tables=self.tables,source_conn=mysql_conn,destination_conn=destination_conn,binlog_file=self.binlog_file,start_position=self.start_position)
+            OperationDB(databases=self.databases,tables=self.tables,source_conn=mysql_conn,destination_conn=destination_conn,binlog_file=self.binlog_file,start_position=self.start_position).Operation()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass

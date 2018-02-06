@@ -33,7 +33,7 @@ def Usage():
 def main(argv):
     _argv = {}
     try:
-        opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S',
+        opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S:',
                                    ['help', 'binlogfile=', 'start-position=', 'host=', 'user=', 'passwd=',
                                     'port=', 'database=', 'tables=','dhost=','dport=','duser=','dpasswd=',
                                     'socket='])

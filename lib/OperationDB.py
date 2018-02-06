@@ -142,10 +142,6 @@ class OperationDB:
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
             while True:
-                if not event_length:
-                    Logging(msg='execute binlog position : {}'.format(self.start_position),level='info')
-                else:
-                    Logging(msg='execute binlog position : {}'.format(self.start_position + event_length),level='info')
                 try:
                     if pymysql.__version__ < "0.6":
                         pkt = ReplConn.read_packet()
@@ -154,8 +150,9 @@ class OperationDB:
                     _parse_event = ParseEvent(packet=pkt,remote=True)
                     event_code, event_length = _parse_event.read_header()
                     if event_code is None:
-                        ReplConn.close()
-                        break
+                        continue
+                    at_pos = self.start_position
+                    next_pos = self.start_position + event_length
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
                         if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
                             if self.tables:
@@ -177,6 +174,7 @@ class OperationDB:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()
                     break
+                Logging(msg='execute binlog position : {}, next position: {}'.format(at_pos,next_pos), level='info')
         else:
             Logging(msg='replication failed................', level='error')
 
