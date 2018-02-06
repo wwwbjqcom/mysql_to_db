@@ -214,7 +214,8 @@ class OperationDB:
         for sql in tmepdata.transaction_sql_list:
             try:
                 self.destination_cur.execute(sql)
-            except:
+            except pymysql.ERROR,e:
+				Logging(msg=traceback.format_exc(),level='error')
                 self.destination_conn.rollback()
                 return None
         self.destination_conn.commit()
