@@ -187,7 +187,7 @@ class ParseEvent(ReadPacket.Read):
         _value = self.read_bytes(count)
         return struct.unpack('{}s'.format(count), _value)[0]
 
-    def read_row_event(self, event_length, colums_type_id_list, metadata_dict, type):
+    def read_row_event(self, event_length, colums_type_id_list, metadata_dict, type,unsigned_list):
         '''
         fixed_part: 10bytes
             table_id: 6bytes
@@ -223,33 +223,33 @@ class ParseEvent(ReadPacket.Read):
                 if self.is_null(null_bit, idex):
                     values.append('Null')
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_TINY:
-                    try:
+                    if 'unsigned' in unsigned_list[idex]:
                         values.append(self.read_uint8())
-                    except:
+                    else:
                         values.append(self.read_int8())
                     bytes += 1
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_SHORT:
-                    try:
+                    if 'unsigned' in unsigned_list[idex]:
                         values.append(self.read_uint16())
-                    except:
+                    else:
                         values.append(self.read_int16())
                     bytes += 2
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_INT24:
-                    try:
+                    if 'unsigned' in unsigned_list[idex]:
                         values.append(self.read_uint24())
-                    except:
+                    else:
                         values.append(self.read_int24())
                     bytes += 3
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_LONG:
-                    try:
+                    if 'unsigned' in unsigned_list[idex]:
                         values.append(self.read_uint32())
-                    except:
+                    else:
                         values.append(self.read_int32())
                     bytes += 4
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_LONGLONG:
-                    try:
+                    if 'unsigned' in unsigned_list[idex]:
                         values.append(self.read_uint64())
-                    except:
+                    else:
                         values.append(self.read_int64())
                     bytes += 8
 
@@ -345,7 +345,7 @@ class ParseEvent(ReadPacket.Read):
     def row_event(self,event_length, colums_type_id_list, metadata_dict, type):
         pass
 
-    def GetValue(self,cloums_type_id_list=None, metadata_dict=None,type_code=None,event_length=None):
+    def GetValue(self,cloums_type_id_list=None, metadata_dict=None,type_code=None,event_length=None,unsigned_list=None):
         database_name, table_name,values = None,None,[]
 
         if type_code == Metadata.binlog_events.TABLE_MAP_EVENT:
@@ -355,7 +355,7 @@ class ParseEvent(ReadPacket.Read):
         elif type_code in (Metadata.binlog_events.WRITE_ROWS_EVENT,Metadata.binlog_events.DELETE_ROWS_EVENT,
                            Metadata.binlog_events.UPDATE_ROWS_EVENT):
             values = self.read_row_event(event_length=event_length,colums_type_id_list=cloums_type_id_list,
-                                         metadata_dict=metadata_dict,type=type_code)
+                                         metadata_dict=metadata_dict,type=type_code,unsigned_list=unsigned_list)
             return values
         elif type_code == Metadata.binlog_events.UPDATE_ROWS_EVENT:
             pass
