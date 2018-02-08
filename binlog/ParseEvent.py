@@ -35,15 +35,15 @@ class ParseEvent(ReadPacket.Read):
                     type_code = result[2]
                 else:
                     type_code = struct.unpack("!B", result[2])[0]
-                event_length = result[4]
+                event_length, next_pos = result[4], result[5]
                 if result[1] == 0:
-                    return None,None
+                    return None,None,None
             else:
                 result = struct.unpack('=IBIIIH', read_byte)
-                type_code, event_length = result[1], result[3]
-            return type_code, event_length
+                type_code, event_length, next_pos = result[1], result[3],result[4]
+            return type_code, event_length,next_pos
         else:
-            return None, None
+            return None, None,None
 
     def read_query_event(self, event_length=None):
         '''fix_part = 13:
@@ -68,6 +68,23 @@ class ParseEvent(ReadPacket.Read):
         read_byte = self.read_bytes(statement_length)
         _a, sql_statement, = struct.unpack('1s{}s'.format(statement_length - 1), read_byte)
         return thread_id, database_name, sql_statement
+
+    def read_rotate_log_event(self,event_length=None):
+        '''
+        Fixed data part: 8bytes
+        Variable data part: event_length - header_length - fixed_length
+        :param event_length: 
+        :return: 
+        '''
+        if self.remote:
+            variable_length = event_length - Metadata.binlog_event_header_len - 8 - 1
+        else:
+            variable_length = event_length - Metadata.binlog_event_header_len - 8
+
+        self.read_bytes(8)
+        value, = struct.unpack('{}s'.format(variable_length),self.read_bytes(variable_length))
+        return value
+
 
     def read_table_map_event(self, event_length):
         '''
@@ -221,7 +238,7 @@ class ParseEvent(ReadPacket.Read):
             bytes += columns_length
             for idex in range(len(colums_type_id_list)):
                 if self.is_null(null_bit, idex):
-                    values.append('Null')
+                    values.append(None)
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_TINY:
                     if 'unsigned' in unsigned_list[idex]:
                         values.append(self.read_uint8())

@@ -26,6 +26,20 @@ class GetStruct:
             column_type_list.append(row['COLUMN_TYPE'])
             if row['COLUMN_KEY'] == 'PRI':
                 pk_idex = idex
+        return column_list,pk_idex,column_type_list
+
+    def CreateTmp(self):
+        self.cur.execute('CREATE DATABASE IF NOT EXISTS dump2db;')                                                                      #创建临时库
+        self.cur.execute('DROP TABLE IF EXISTS dump_status;')                                                                           #删除表
+        self.cur.execute('CREATE TABLE dump_status(id INT,logname VARCHAR(100),at_pos BIGINT,next_pos BIGINT,PRIMARY KEY(id));')    #创建临时表
+
+    def SaveStatus(self,logname,at_pos,next_pos):
+        sql = 'INSERT INTO table(id,logname,at_pos,next_pos) VALUES (1,%s,%s,%s) ON DUPLICATE KEY UPDATE logname=%s,at_pos=%s,next_pos=%s;'
+        self.cur.execute(sql,(logname,at_pos,next_pos,logname,at_pos,next_pos))
+        self.connection.commit()
+
+    def close(self):
         self.cur.close()
         self.connection.close()
-        return column_list,pk_idex,column_type_list
+
+

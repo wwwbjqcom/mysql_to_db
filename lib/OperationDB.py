@@ -97,8 +97,12 @@ class OperationDB:
     def Operation(self):
         Logging(msg='replication to master.............', level='info')
         ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn).ReadPack()
-        event_length = None
         table_struce_key = None
+        next_pos = None
+        binlog_file_name = self.binlog_file
+
+        _mysql_conn = GetStruct(host=self.host, port=self.port,user=self.user,passwd=self.passwd)
+        _mysql_conn.CreateTmp()
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
             while True:
@@ -107,12 +111,11 @@ class OperationDB:
                         pkt = ReplConn.read_packet()
                     else:
                         pkt = ReplConn._read_packet()
-                    at_pos = self.start_position + event_length if event_length else self.start_position
+                    at_pos = next_pos if next_pos else self.start_position
                     _parse_event = ParseEvent(packet=pkt,remote=True)
-                    event_code, event_length = _parse_event.read_header()
+                    event_code, event_length ,next_pos= _parse_event.read_header()
                     if event_code is None:
                         continue
-                    next_pos = at_pos + event_length
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
                         if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
                             if self.tables:
@@ -129,20 +132,28 @@ class OperationDB:
                         tmepdata.database_name, tmepdata.table_name, tmepdata.cloums_type_id_list, tmepdata.metadata_dict=_parse_event.GetValue(type_code=event_code,event_length=event_length)  # 获取event数据
                         table_struce_key = '{}:{}'.format(tmepdata.database_name, tmepdata.table_name)
                         if table_struce_key not in tmepdata.table_struct_list:
-                            column_list, pk_idex, column_type_list = GetStruct(host=self.host, port=self.port,
-                                                                               user=self.user,
-                                                                               passwd=self.passwd).GetColumn(
-                                tmepdata.database_name, tmepdata.table_name)
-                            tmepdata.table_struct_list[table_struce_key] = column_list
-                            tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
-                            tmepdata.table_struct_type_list[table_struce_key] = column_type_list
+                            if tmepdata.database_name in self.databases:
+                                if self.tables:
+                                    if tmepdata.table_name in self.tables:
+                                        column_list, pk_idex, column_type_list = _mysql_conn.GetColumn(tmepdata.database_name, tmepdata.table_name)
+                                        tmepdata.table_struct_list[table_struce_key] = column_list
+                                        tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
+                                        tmepdata.table_struct_type_list[table_struce_key] = column_type_list
+                                else:
+                                    column_list, pk_idex, column_type_list = _mysql_conn.GetColumn(tmepdata.database_name, tmepdata.table_name)
+                                    tmepdata.table_struct_list[table_struce_key] = column_list
+                                    tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
+                                    tmepdata.table_struct_type_list[table_struce_key] = column_type_list
+                        elif event_code == binlog_events.ROTATE_EVENT:
+                            binlog_file_name = _parse_event.read_rotate_log_event(event_length=event_length)
                 except Exception,e:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()
                     break
-                Logging(msg='execute binlog position : {}, next position: {}'.format(at_pos,next_pos), level='info')
+                _mysql_conn.SaveStatus(logname=binlog_file_name,at_pos=at_pos,next_pos=next_pos)
         else:
             Logging(msg='replication failed................', level='error')
+            _mysql_conn.close()
 
     def __put_new_db(self,sql,args):
         try:
