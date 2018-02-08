@@ -23,7 +23,13 @@ class OperationDB:
     def __init__(self,**kwargs):
         self.host,self.port,self.user,self.passwd = kwargs['host'],kwargs['port'],kwargs['user'],kwargs['passwd']
         self.unix_socket = kwargs['socket']
+
         self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']
+        self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
+                                         mysql_password=self.dpasswd).Init()
+
+        self.destination_cur = self.destination_conn.cursor()
+
         self.databases = kwargs['databases']
         self.tables = kwargs['tables']
         self.binlog_file = kwargs['binlog_file']
@@ -31,10 +37,6 @@ class OperationDB:
         self.conn = InitMyDB(mysql_host=self.host, mysql_port=self.port, mysql_user=self.user,
                               mysql_password=self.passwd, unix_scoket=self.unix_socket).Init()
 
-        self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
-                                    mysql_password=self.dpasswd).Init()
-
-        self.destination_cur = self.destination_conn.cursor()
 
 
 
@@ -144,7 +146,7 @@ class OperationDB:
                                     tmepdata.table_struct_list[table_struce_key] = column_list
                                     tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
                                     tmepdata.table_struct_type_list[table_struce_key] = column_type_list
-                        elif event_code == binlog_events.ROTATE_EVENT:
+                    elif event_code == binlog_events.ROTATE_EVENT:
                             binlog_file_name = _parse_event.read_rotate_log_event(event_length=event_length)
                 except Exception,e:
                     Logging(msg=traceback.format_exc(),level='error')
@@ -156,6 +158,7 @@ class OperationDB:
             _mysql_conn.close()
 
     def __put_new_db(self,sql,args):
+
         try:
             self.destination_cur.execute(sql,args)
         except pymysql.Error,e:

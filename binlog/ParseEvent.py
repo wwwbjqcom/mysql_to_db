@@ -36,7 +36,7 @@ class ParseEvent(ReadPacket.Read):
                 else:
                     type_code = struct.unpack("!B", result[2])[0]
                 event_length, next_pos = result[4], result[5]
-                if result[1] == 0:
+                if result[1] == 0 and result[2] == 0:
                     return None,None,None
             else:
                 result = struct.unpack('=IBIIIH', read_byte)
@@ -77,9 +77,9 @@ class ParseEvent(ReadPacket.Read):
         :return: 
         '''
         if self.remote:
-            variable_length = event_length - Metadata.binlog_event_header_len - 8 - 1
+            variable_length = event_length - Metadata.binlog_event_header_len - 8 - 1 - Metadata.src_length + 1
         else:
-            variable_length = event_length - Metadata.binlog_event_header_len - 8
+            variable_length = event_length - Metadata.binlog_event_header_len - 8 - Metadata.src_length + 1
 
         self.read_bytes(8)
         value, = struct.unpack('{}s'.format(variable_length),self.read_bytes(variable_length))

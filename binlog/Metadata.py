@@ -119,6 +119,7 @@ read_format_desc_event_length = 56
 binlog_xid_event_length = 8
 table_map_event_fix_length = 8
 fix_length = 8
+src_length = 4
 
 '''存储表结构数据'''
 class TableMetadata:
