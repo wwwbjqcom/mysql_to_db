@@ -183,7 +183,7 @@ class ParseEvent(ReadPacket.Read):
         xid_num = self.read_uint64()
         return xid_num
 
-    def __read_decode(self, count):
+    def read_decode(self, count):
         _value = self.read_bytes(count)
         return struct.unpack('{}s'.format(count), _value)[0]
 
@@ -255,7 +255,7 @@ class ParseEvent(ReadPacket.Read):
 
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_NEWDECIMAL:
                     _list = metadata_dict[idex]
-                    decimals, read_bytes = self.__read_new_decimal(precision=_list[0], decimals=_list[1])
+                    decimals, read_bytes = self.read_new_decimal(precision=_list[0], decimals=_list[1])
                     values.append(decimals)
                     bytes += read_bytes
 
@@ -270,12 +270,11 @@ class ParseEvent(ReadPacket.Read):
                     bytes += _read_bytes
 
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_TIMESTAMP2:
-                    _time, read_bytes = self.__add_fsp_to_time(
-                        datetime.datetime.fromtimestamp(self.read_int_be_by_size(4)), metadata_dict[idex])
+                    _time, read_bytes = self.add_fsp_to_time(datetime.datetime.fromtimestamp(self.read_int_be_by_size(4)), metadata_dict[idex])
                     values.append(str(_time))
                     bytes += read_bytes + 4
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_DATETIME2:
-                    _time, read_bytes = self.__read_datetime2(metadata_dict[idex])
+                    _time, read_bytes = self.read_datetime2(metadata_dict[idex])
                     values.append(str(_time))
                     bytes += 5 + read_bytes
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_YEAR:
@@ -283,12 +282,12 @@ class ParseEvent(ReadPacket.Read):
                     values.append(_date)
                     bytes += 1
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_DATE:
-                    _time = self.__read_date()
+                    _time = self.read_date()
                     values.append(str(_time))
                     bytes += 3
 
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_TIME2:
-                    _time, read_bytes = self.__read_time2(metadata_dict[idex])
+                    _time, read_bytes = self.read_time2(metadata_dict[idex])
                     bytes += read_bytes
                     values.append(str(_time))
 
@@ -300,7 +299,7 @@ class ParseEvent(ReadPacket.Read):
                                                    Metadata.column_type_dict.MYSQL_TYPE_MEDIUM_BLOB]:
                     _metadata = metadata_dict[idex]
                     value_length = self.read_uint_by_size(_metadata)
-                    values.append(str(self.__read_decode(value_length)))
+                    values.append(str(self.read_decode(value_length)))
                     bytes += value_length + _metadata
                 elif colums_type_id_list[idex] in [Metadata.column_type_dict.MYSQL_TYPE_JSON]:
                     _metadata = metadata_dict[idex]
@@ -311,11 +310,11 @@ class ParseEvent(ReadPacket.Read):
                     _metadata = metadata_dict[idex]
                     if _metadata <= 255:
                         value_length = self.read_uint8()
-                        values.append(str(self.__read_decode(value_length)))
+                        values.append(str(self.read_decode(value_length)))
                         _read = 1
                     else:
                         value_length = self.read_uint16()
-                        values.append(str(self.__read_decode(value_length)))
+                        values.append(str(self.read_decode(value_length)))
                         _read = 2
                     bytes += value_length + _read
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_ENUM:

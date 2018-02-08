@@ -148,7 +148,7 @@ class Read(object):
         create_time, = struct.unpack('I', self.read_bytes(4))
         return binlog_ver, server_ver, create_time
 
-    def __add_fsp_to_time(self, time, column):
+    def add_fsp_to_time(self, time, column):
         """Read and add the fractional part of time
         For more details about new date format:
         """
@@ -186,7 +186,7 @@ class Read(object):
         mask = ((1 << size) - 1)
         return binary & mask
 
-    def __read_datetime2(self, column):
+    def read_datetime2(self, column):
         """DATETIME
 
         1 bit  sign           (1= non-negative, 0= negative)
@@ -210,10 +210,10 @@ class Read(object):
                 second=self.__read_binary_slice(data, 34, 6, 40))
         except ValueError:
             return None
-        __time, read = self.__add_fsp_to_time(t, column)
+        __time, read = self.add_fsp_to_time(t, column)
         return __time, read
 
-    def __read_time2(self, column):
+    def read_time2(self, column):
         """TIME encoding for nonfractional part:
 
          1 bit sign    (1= non-negative, 0= negative)
@@ -243,7 +243,7 @@ class Read(object):
         )
         return t, read + 3
 
-    def __read_date(self):
+    def read_date(self):
         time = self.read_uint24()
         if time == 0:  # nasty mysql 0000-00-00 dates
             return None
@@ -261,7 +261,7 @@ class Read(object):
         )
         return date
 
-    def __read_new_decimal(self, precision, decimals):
+    def read_new_decimal(self, precision, decimals):
         """Read MySQL's new decimal format introduced in MySQL 5"""
         '''
         Each multiple of nine digits requires four bytes, and the “leftover” digits require some fraction of four bytes. 
@@ -418,7 +418,7 @@ class Read(object):
         value_type_inlined_lengths = [self.read_offset_or_inline(large)
                                       for _ in range(elements)]
 
-        keys = [self.__read_decode(x[1]) for x in key_offset_lengths]
+        keys = [self.read_decode(x[1]) for x in key_offset_lengths]
 
         out = {}
         for i in range(elements):
@@ -469,6 +469,6 @@ class Read(object):
         The string start by the size of the string
         """
         length = self.read_uint_by_size(size)
-        return self.__read_decode(length)
+        return self.read_decode(length)
 
     '''###################################################'''
