@@ -1,4 +1,3 @@
-# mysql_to_db
 该工具可以结合mysqldump备份工具实现在线迁移库、表，主要功能通过提供的binlog文件及position模拟slave追加数据到目标库
 功能：
 	1、通过binlog追加dml数据到目标库
