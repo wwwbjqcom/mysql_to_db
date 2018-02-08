@@ -29,3 +29,9 @@
 	2、需要information_schema.columns表的查询权限以及replication slave权限
 	3、目标库增删改权限
 	4、只实现了dml语句产生的数据追加操作
+	
+python依赖包：
+	pip install pymysql struct 
+	
+实例语句：
+	python main.py  -f mysql-bin.000007 --start-position 114991021 -u root -p root -H 192.168.1.3  --dhost 192.168.1.2 --dport 3306 --duser root --dpasswd root -D db1,db2 -t t1,t2
