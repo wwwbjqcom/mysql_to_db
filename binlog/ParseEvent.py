@@ -36,8 +36,6 @@ class ParseEvent(ReadPacket.Read):
                 else:
                     type_code = struct.unpack("!B", result[2])[0]
                 event_length, next_pos = result[4], result[5]
-                if result[1] == 0 and result[2] == 0:
-                    return None,None,None
             else:
                 result = struct.unpack('=IBIIIH', read_byte)
                 type_code, event_length, next_pos = result[1], result[3],result[4]
