@@ -316,7 +316,7 @@ class ParseEvent(ReadPacket.Read):
                                                    Metadata.column_type_dict.MYSQL_TYPE_BIT]:
                     _metadata = metadata_dict[idex]
                     value_length = self.read_uint_by_size(_metadata)
-                    values.append(str(self.read_decode(value_length)))
+                    values.append(self.read_decode(value_length))
                     bytes += value_length + _metadata
                 elif colums_type_id_list[idex] in [Metadata.column_type_dict.MYSQL_TYPE_JSON]:
                     _metadata = metadata_dict[idex]
@@ -327,11 +327,11 @@ class ParseEvent(ReadPacket.Read):
                     _metadata = metadata_dict[idex]
                     if _metadata <= 255:
                         value_length = self.read_uint8()
-                        values.append(str(self.read_decode(value_length)))
+                        values.append(self.read_decode(value_length))
                         _read = 1
                     else:
                         value_length = self.read_uint16()
-                        values.append(str(self.read_decode(value_length)))
+                        values.append(self.read_decode(value_length))
                         _read = 2
                     bytes += value_length + _read
                 elif colums_type_id_list[idex] == Metadata.column_type_dict.MYSQL_TYPE_ENUM:
