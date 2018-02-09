@@ -311,7 +311,9 @@ class ParseEvent(ReadPacket.Read):
                                                    Metadata.column_type_dict.MYSQL_TYPE_BLOB,
                                                    Metadata.column_type_dict.MYSQL_TYPE_TINY_BLOB,
                                                    Metadata.column_type_dict.MYSQL_TYPE_LONG_BLOB,
-                                                   Metadata.column_type_dict.MYSQL_TYPE_MEDIUM_BLOB]:
+                                                   Metadata.column_type_dict.MYSQL_TYPE_MEDIUM_BLOB,
+                                                   Metadata.column_type_dict.MYSQL_TYPE_SET,
+                                                   Metadata.column_type_dict.MYSQL_TYPE_BIT]:
                     _metadata = metadata_dict[idex]
                     value_length = self.read_uint_by_size(_metadata)
                     values.append(str(self.read_decode(value_length)))
