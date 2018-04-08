@@ -54,7 +54,10 @@ class OperationDB:
         pk_col = []
         for pk in pk_list:
             pk_col.append(tmepdata.table_struct_list[table_struce_key][pk])
-        return ','.join(['`{}`=%s'.format(col) for col in pk_list])
+        if len(pk_col) > 1:
+            return ','.join(['`{}`=%s'.format(col) for col in pk_col])
+        else:
+            return '`{}`=%s'.format(pk_col[0])
 
     def GetSQL(self,_values=None,event_code=None):
         table_struce_key = '{}:{}'.format(tmepdata.database_name,tmepdata.table_name)
@@ -74,7 +77,7 @@ class OperationDB:
                                                                        self.SetJoin(table_struce_key), pk_where)
                     pk_values = []
                     for i in __pk_idx:
-                        pk_values.append(row_value[i])
+                        pk_values.append(row_value[0][i])
                     _args = row_value[1] + pk_values
                 else:
                     cur_sql = 'UPDATE {}.{} SET {} WHERE {}'.format(tmepdata.database_name, tmepdata.table_name,
@@ -177,6 +180,7 @@ class OperationDB:
         try:
             self.destination_cur.execute(sql,args)
         except pymysql.Error,e:
+            Logging(msg=[sql,args],level='error')
             Logging(msg=traceback.format_exc(),level='error')
             return None
         return True
