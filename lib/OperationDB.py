@@ -42,13 +42,19 @@ class OperationDB:
 
 
     def WhereJoin(self,table_struce_key):
-        return ' AND '.join(['{}=%s'.format(col) for col in tmepdata.table_struct_list[table_struce_key]])
+        return ' AND '.join(['`{}`=%s'.format(col) for col in tmepdata.table_struct_list[table_struce_key]])
 
     def SetJoin(self,table_struce_key):
-        return ','.join(['{}=%s'.format(col) for col in tmepdata.table_struct_list[table_struce_key]])
+        return ','.join(['`{}`=%s'.format(col) for col in tmepdata.table_struct_list[table_struce_key]])
 
     def ValueJoin(self,table_struce_key):
         return '({})'.format(','.join(['%s' for i in range(len(tmepdata.table_struct_list[table_struce_key]))]))
+
+    def PkJoin(self,pk_list,table_struce_key):
+        pk_col = []
+        for pk in pk_list:
+            pk_col.append(tmepdata.table_struct_list[table_struce_key][pk])
+        return ','.join(['`{}`=%s'.format(col) for col in pk_list])
 
     def GetSQL(self,_values=None,event_code=None):
         table_struce_key = '{}:{}'.format(tmepdata.database_name,tmepdata.table_name)
@@ -56,7 +62,7 @@ class OperationDB:
         if table_struce_key in tmepdata.table_pk_idex_list:
             '''获取主键所在index'''
             __pk_idx = tmepdata.table_pk_idex_list[table_struce_key]
-            pk = tmepdata.table_struct_list[table_struce_key][__pk_idx]
+            pk_where = self.PkJoin(__pk_idx,table_struce_key)
         else:
             __pk_idx = None
 
@@ -64,10 +70,12 @@ class OperationDB:
             __values = [_values[i:i + 2] for i in xrange(0, len(_values), 2)]
             for row_value in __values:
                 if __pk_idx is not None:
-                    cur_pk_value =  row_value[1][__pk_idx]
-                    cur_sql = 'UPDATE {}.{} SET {} WHERE {}=%s'.format(tmepdata.database_name, tmepdata.table_name,
-                                                                       self.SetJoin(table_struce_key), pk)
-                    _args = row_value[1] + [cur_pk_value]
+                    cur_sql = 'UPDATE {}.{} SET {} WHERE {}'.format(tmepdata.database_name, tmepdata.table_name,
+                                                                       self.SetJoin(table_struce_key), pk_where)
+                    pk_values = []
+                    for i in __pk_idx:
+                        pk_values.append(row_value[i])
+                    _args = row_value[1] + pk_values
                 else:
                     cur_sql = 'UPDATE {}.{} SET {} WHERE {}'.format(tmepdata.database_name, tmepdata.table_name,
                                                                    self.SetJoin(table_struce_key),
@@ -84,8 +92,11 @@ class OperationDB:
 
                 elif event_code == binlog_events.DELETE_ROWS_EVENT:
                     if __pk_idx is not None:
-                        cur_sql = 'DELETE FROM {}.{} WHERE {}=%s;'.format(tmepdata.database_name,tmepdata.table_name,pk)
-                        _args = [value[__pk_idx]]
+                        cur_sql = 'DELETE FROM {}.{} WHERE {};'.format(tmepdata.database_name,tmepdata.table_name,pk_where)
+                        pk_values = []
+                        for i in __pk_idx:
+                            pk_values.append(value[i])
+                        _args = pk_values
                     else:
                         cur_sql = 'DELETE FROM {}.{} WHERE {};'.format(tmepdata.database_name,tmepdata.table_name,self.WhereJoin(table_struce_key))
                         _args = value

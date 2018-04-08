@@ -22,11 +22,12 @@ class GetStruct:
         sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
         self.cur.execute(sql,args=args)
         result = self.cur.fetchall()
+        pk_idex = []
         for idex,row in enumerate(result):
             column_list.append(row['COLUMN_NAME'])
             column_type_list.append(row['COLUMN_TYPE'])
             if row['COLUMN_KEY'] == 'PRI':
-                pk_idex = idex
+                pk_idex.append(idex)
         return column_list,pk_idex,column_type_list
 
     def CreateTmp(self):
