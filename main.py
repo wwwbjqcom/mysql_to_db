@@ -26,6 +26,9 @@ def Usage():
             --dport : destination mysql port
             --duser : destination mysql user name
             --dpasswd : destination mysql password
+            --full : whether the total quantity is exported. default false
+            --threads : dump threads,default 1 if --full is true
+            --ignore : ignore type [delete,insert,update],allows filtering of the operation
     	    """
     print __usage__
 
@@ -33,10 +36,10 @@ def Usage():
 def main(argv):
     _argv = {}
     try:
-        opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S:',
+        opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S:i:',
                                    ['help', 'binlogfile=', 'start-position=', 'host=', 'user=', 'passwd=',
                                     'port=', 'database=', 'tables=','dhost=','dport=','duser=','dpasswd=',
-                                    'socket='])
+                                    'socket=','full','threads=','ignore='])
     except getopt.GetoptError, err:
         print str(err)
         Usage()
@@ -53,6 +56,8 @@ def main(argv):
             _argv['user'] = a
         elif o in ('-H', '--host'):
             _argv['host'] = a
+        elif o in ('-i','--ignore'):
+            _argv['ignore_type'] = a
         elif o in ('-p', '--passwd'):
             _argv['passwd'] = a
         elif o in ('-P', '--port'):
@@ -71,6 +76,10 @@ def main(argv):
             _argv['dpasswd'] = a
         elif o in ('-S','--socket'):
             _argv['socket'] = a
+        elif o in ('--full'):
+            _argv['full'] = True
+        elif o in ('--threads'):
+            _argv['threads'] = int(a)
         else:
             print 'unhandled option'
             sys.exit(3)

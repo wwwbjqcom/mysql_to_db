@@ -6,7 +6,6 @@ import sys
 sys.path.append("..")
 from binlog import Metadata
 from OperationDB import OperationDB
-from InitDB import InitMyDB
 
 
 class Entrance(Metadata.TableMetadata):
@@ -25,11 +24,12 @@ class Entrance(Metadata.TableMetadata):
         self.d_port = kargs['dport']
         self.d_user = kargs['duser']
         self.d_passwd = kargs['dpasswd']
+        self.ignore_type = kargs['ignore_type'] if 'ignore_type' in kargs else None
 
     def __enter__(self):
         OperationDB(databases=self.databases,tables=self.tables,binlog_file=self.binlog_file,start_position=self.start_position,
                     host=self.host,port=self.port,user=self.user,passwd=self.passwd,dhost=self.d_host,dport=self.d_port,
-                    duser=self.d_user,dpasswd=self.d_passwd,socket=self.socket).Operation()
+                    duser=self.d_user,dpasswd=self.d_passwd,socket=self.socket,ignore_type=self.ignore_type).Operation()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass

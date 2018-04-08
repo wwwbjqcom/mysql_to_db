@@ -10,7 +10,6 @@ from binlog.Replication import ReplicationMysql
 from binlog.ParseEvent import ParseEvent
 from binlog.PrepareStructure import GetStruct
 from binlog.Metadata import binlog_events
-from binlog.Metadata import column_type_dict
 
 class tmepdata:
     database_name,table_name,cloums_type_id_list,metadata_dict = None,None,None,None
@@ -38,6 +37,8 @@ class OperationDB:
                               mysql_password=self.passwd, unix_scoket=self.unix_socket).Init()
 
 
+        self.ignore_type = kwargs['ignore_type']
+        self.ignore = {'delete':binlog_events.DELETE_ROWS_EVENT,'update':binlog_events.UPDATE_ROWS_EVENT,'insert':binlog_events.WRITE_ROWS_EVENT}
 
 
     def WhereJoin(self,table_struce_key):
@@ -119,17 +120,20 @@ class OperationDB:
                     if event_code is None:
                         continue
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
-                        if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
-                            if self.tables:
-                                if tmepdata.table_name in self.tables:
-                                    _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,cloums_type_id_list=tmepdata.cloums_type_id_list,
+                        if self.ignore_type and self.ignore[self.ignore_type] == event_code:
+                            pass
+                        else:
+                            if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
+                                if self.tables:
+                                    if tmepdata.table_name in self.tables:
+                                        _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,cloums_type_id_list=tmepdata.cloums_type_id_list,
+                                                                        metadata_dict=tmepdata.metadata_dict,unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
+                                        self.GetSQL(_values=_values, event_code=event_code)
+                                else:
+                                    _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
+                                                                    cloums_type_id_list=tmepdata.cloums_type_id_list,
                                                                     metadata_dict=tmepdata.metadata_dict,unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
                                     self.GetSQL(_values=_values, event_code=event_code)
-                            else:
-                                _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
-                                                                cloums_type_id_list=tmepdata.cloums_type_id_list,
-                                                                metadata_dict=tmepdata.metadata_dict,unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
-                                self.GetSQL(_values=_values, event_code=event_code)
                     elif event_code == binlog_events.TABLE_MAP_EVENT:
                         tmepdata.database_name, tmepdata.table_name, tmepdata.cloums_type_id_list, tmepdata.metadata_dict=_parse_event.GetValue(type_code=event_code,event_length=event_length)  # 获取event数据
                         table_struce_key = '{}:{}'.format(tmepdata.database_name, tmepdata.table_name)
