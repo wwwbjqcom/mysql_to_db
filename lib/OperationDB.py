@@ -55,7 +55,7 @@ class OperationDB:
         for pk in pk_list:
             pk_col.append(tmepdata.table_struct_list[table_struce_key][pk])
         if len(pk_col) > 1:
-            return ','.join(['`{}`=%s'.format(col) for col in pk_col])
+            return ' AND '.join(['`{}`=%s'.format(col) for col in pk_col])
         else:
             return '`{}`=%s'.format(pk_col[0])
 
