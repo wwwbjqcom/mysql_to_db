@@ -170,7 +170,7 @@ class OperationDB:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()
                     break
-                _mysql_conn.SaveStatus(logname=binlog_file_name,at_pos=at_pos,next_pos=next_pos)
+                _mysql_conn.SaveStatus(logname=binlog_file_name,at_pos=at_pos,next_pos=next_pos,server_id=self.server_id)
         else:
             Logging(msg='replication failed................', level='error')
             _mysql_conn.close()
