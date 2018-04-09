@@ -29,6 +29,7 @@ def Usage():
             --full : whether the total quantity is exported. default false
             --threads : dump threads,default 1 if --full is true
             --ignore : ignore type [delete,insert,update],allows filtering of the operation
+            --serverid : default 133
     	    """
     print __usage__
 
@@ -39,7 +40,7 @@ def main(argv):
         opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S:i:',
                                    ['help', 'binlogfile=', 'start-position=', 'host=', 'user=', 'passwd=',
                                     'port=', 'database=', 'tables=','dhost=','dport=','duser=','dpasswd=',
-                                    'socket=','full','threads=','ignore='])
+                                    'socket=','full','threads=','ignore=','serverid='])
     except getopt.GetoptError, err:
         print str(err)
         Usage()
@@ -54,6 +55,8 @@ def main(argv):
             _argv['start-position'] = int(a)
         elif o in ('-u', '--user'):
             _argv['user'] = a
+        elif o == '--serverid':
+            _argv['serverid'] = int(a)
         elif o in ('-H', '--host'):
             _argv['host'] = a
         elif o in ('-i','--ignore'):

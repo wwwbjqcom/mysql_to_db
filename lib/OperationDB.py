@@ -39,7 +39,7 @@ class OperationDB:
 
         self.ignore_type = kwargs['ignore_type']
         self.ignore = {'delete':binlog_events.DELETE_ROWS_EVENT,'update':binlog_events.UPDATE_ROWS_EVENT,'insert':binlog_events.WRITE_ROWS_EVENT}
-
+        self.server_id = kwargs['server_id']
 
     def WhereJoin(self,table_struce_key):
         return ' AND '.join(['`{}`=%s'.format(col) for col in tmepdata.table_struct_list[table_struce_key]])
@@ -113,7 +113,7 @@ class OperationDB:
             sys.exit()
     def Operation(self):
         Logging(msg='replication to master.............', level='info')
-        ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn).ReadPack()
+        ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn,server_id=self.server_id).ReadPack()
         table_struce_key = None
         next_pos = None
         binlog_file_name = self.binlog_file
