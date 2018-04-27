@@ -26,10 +26,12 @@ def Usage():
             --dport : destination mysql port
             --duser : destination mysql user name
             --dpasswd : destination mysql password
+            --binlog : record binlog on destination mysql , when append data. default flase
             --full : whether the total quantity is exported. default false
             --threads : dump threads,default 1 if --full is true
             --ignore : ignore type [delete,insert,update],allows filtering of the operation
             --serverid : default 133
+            
     	    """
     print __usage__
 
@@ -40,7 +42,7 @@ def main(argv):
         opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S:i:',
                                    ['help', 'binlogfile=', 'start-position=', 'host=', 'user=', 'passwd=',
                                     'port=', 'database=', 'tables=','dhost=','dport=','duser=','dpasswd=',
-                                    'socket=','full','threads=','ignore=','serverid='])
+                                    'socket=','full','binlog','threads=','ignore=','serverid='])
     except getopt.GetoptError, err:
         print str(err)
         Usage()
@@ -83,6 +85,8 @@ def main(argv):
             _argv['full'] = True
         elif o in ('--threads'):
             _argv['threads'] = int(a)
+        elif o in ('--binlog'):
+            _argv['binlog'] = True
         else:
             print 'unhandled option'
             sys.exit(3)

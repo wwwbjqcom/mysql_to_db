@@ -24,10 +24,13 @@ class OperationDB:
         self.unix_socket = kwargs['socket']
 
         self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']
+        self.binlog = kwargs['binlog']
         self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
                                          mysql_password=self.dpasswd).Init()
 
         self.destination_cur = self.destination_conn.cursor()
+        if self.binlog:
+            self.destination_cur.execute('set sql_log_bin=0;')
 
         self.databases = kwargs['databases']
         self.tables = kwargs['tables']
