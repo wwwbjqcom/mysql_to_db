@@ -29,12 +29,9 @@ class OperationDB:
 
         self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']                           #目标库连接相关信息
         self.binlog = kwargs['binlog']                                                                                                              #是否在目标库记录binlog的参数
-        self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
-                                         mysql_password=self.dpasswd).Init()
 
-        self.destination_cur = self.destination_conn.cursor()
-        if self.binlog:
-            self.destination_cur.execute('set sql_log_bin=0;')                                                                                      #设置binlog参数
+        self.destination_conn =None
+        self.destination_cur = None
 
         self.databases = kwargs['databases']
         self.tables = kwargs['tables']
@@ -139,13 +136,23 @@ class OperationDB:
         _mysql_conn = GetStruct(host=self.host, port=self.port,user=self.user,passwd=self.passwd)
         _mysql_conn.CreateTmp()
         if ReplConn:
+            '''目标库连接'''
+            self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
+                                             mysql_password=self.dpasswd).Init()
+
+            self.destination_cur = self.destination_conn.cursor()
+            if self.binlog:
+                self.destination_cur.execute('set sql_log_bin=0;')  #设置binlog参数
+                self.destination_cur.execute('SET SESSION wait_timeout = 2147483;')
+            ''''''
+
             Logging(msg='replication succeed................', level='info')
             while True:
                 try:
                     if pymysql.__version__ < "0.6":
                         pkt = ReplConn.read_packet()
                     else:
-                        pkt = ReplConn.read_packet()
+                        pkt = ReplConn._read_packet()
                     at_pos = next_pos if next_pos else self.start_position
                     _parse_event = ParseEvent(packet=pkt,remote=True)
                     event_code, event_length ,next_pos= _parse_event.read_header()
