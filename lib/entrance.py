@@ -10,7 +10,8 @@ from .OperationDB import OperationDB
 
 class Entrance(Metadata.TableMetadata):
     def __init__(self,kargs):
-        self.binlog_file,self.start_position = kargs['file'],kargs['start-position']
+        self.binlog_file = kargs['file'] if 'file' in kargs else None
+        self.start_position = kargs['start-position'] if 'start-position' in kargs else None
         self.host = kargs['host'] if 'host' in kargs else '127.0.0.1'
         self.port = kargs['port']  if 'port' in kargs else 3306
         self.user = kargs['user']
