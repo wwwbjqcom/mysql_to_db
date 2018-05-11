@@ -75,7 +75,7 @@ class Prepare(object):
         conn.close()
 
     def get_chunks(self,cur,databases,tables):
-        cur.execute('select count(*) as count from {}.{}'.format(db,table))
+        cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
         result = cur.fetchall()
         total_rows = result[0]['count']
         chunk = total_rows / len(self.thread_list)
