@@ -64,14 +64,14 @@ class Dump:
 
             try:
                 self.des_mysql_cur.execute(sql,all_value)
-                self.des_mysql_conn.commint()
+                self.des_mysql_conn.commit()
             except pymysql.Warning:
                 Logging(msg=traceback.format_list(),level='warning')
             except pymysql.Error:
                 Logging(msg=traceback.format_list(),level='error')
                 self.__retry_(sql,all_value)
 
-            if self.result < 1000:
+            if len(self.result) < 1000:
                 break
             limit_num += 1000
 
