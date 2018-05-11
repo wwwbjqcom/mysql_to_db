@@ -3,9 +3,10 @@
 @author: xiaozhong
 '''
 import sys,pymysql,traceback
-from Loging import Logging
-from InitDB import InitMyDB
+from .Loging import Logging
+from .InitDB import InitMyDB
 sys.path.append("..")
+from dump.processdump import processdump
 from binlog.Replication import ReplicationMysql
 from binlog.ParseEvent import ParseEvent
 from binlog.PrepareStructure import GetStruct
@@ -20,17 +21,20 @@ class tmepdata:
 
 class OperationDB:
     def __init__(self,**kwargs):
-        self.host,self.port,self.user,self.passwd = kwargs['host'],kwargs['port'],kwargs['user'],kwargs['passwd']
+        self.full_dump = kwargs['full_dump']                                                                                                        #是否全量导出
+        self.threads = kwargs['threads']                                                                                                            #全量导出时并发线程
+
+        self.host,self.port,self.user,self.passwd = kwargs['host'],kwargs['port'],kwargs['user'],kwargs['passwd']                                   #源库连接相关信息
         self.unix_socket = kwargs['socket']
 
-        self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']
-        self.binlog = kwargs['binlog']
+        self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']                           #目标库连接相关信息
+        self.binlog = kwargs['binlog']                                                                                                              #是否在目标库记录binlog的参数
         self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
                                          mysql_password=self.dpasswd).Init()
 
         self.destination_cur = self.destination_conn.cursor()
         if self.binlog:
-            self.destination_cur.execute('set sql_log_bin=0;')
+            self.destination_cur.execute('set sql_log_bin=0;')                                                                                      #设置binlog参数
 
         self.databases = kwargs['databases']
         self.tables = kwargs['tables']
@@ -115,6 +119,14 @@ class OperationDB:
             Logging(msg='failed!!!!', level='error')
             sys.exit()
     def Operation(self):
+        '''全量导出入口'''
+        if self.full_dump:
+            des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,'mysql_passwd':self.dpasswd}
+            src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,'mysql_passwd':self.passwd,'mysql_socket':self.unix_socket}
+            dump_stat = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info).start()
+            if dump_stat is None:
+                sys.exit()
+        ''''''
         Logging(msg='replication to master.............', level='info')
         ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn,server_id=self.server_id).ReadPack()
         table_struce_key = None
@@ -169,7 +181,7 @@ class OperationDB:
                                     tmepdata.table_struct_type_list[table_struce_key] = column_type_list
                     elif event_code == binlog_events.ROTATE_EVENT:
                             binlog_file_name = _parse_event.read_rotate_log_event(event_length=event_length)
-                except Exception,e:
+                except:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()
                     break
@@ -182,7 +194,7 @@ class OperationDB:
 
         try:
             self.destination_cur.execute(sql,args)
-        except pymysql.Error,e:
+        except pymysql.Error:
             Logging(msg=[sql,args],level='error')
             Logging(msg=traceback.format_exc(),level='error')
             return None

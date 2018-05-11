@@ -33,7 +33,7 @@ def Usage():
             --serverid : default 133
             
     	    """
-    print __usage__
+    print(__usage__)
 
 
 def main(argv):
@@ -43,8 +43,7 @@ def main(argv):
                                    ['help', 'binlogfile=', 'start-position=', 'host=', 'user=', 'passwd=',
                                     'port=', 'database=', 'tables=','dhost=','dport=','duser=','dpasswd=',
                                     'socket=','full','binlog','threads=','ignore=','serverid='])
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError:
         Usage()
         sys.exit(2)
     for o, a in opts:
@@ -88,7 +87,7 @@ def main(argv):
         elif o in ('--binlog'):
             _argv['binlog'] = True
         else:
-            print 'unhandled option'
+            print('unhandled option')
             sys.exit(3)
 
     with entrance.Entrance(_argv):
