@@ -26,7 +26,7 @@ class Entrance(Metadata.TableMetadata):
         self.d_user = kargs['duser']
         self.d_passwd = kargs['dpasswd']
         self.ignore_type = kargs['ignore_type'] if 'ignore_type' in kargs else None
-        self.server_id = kargs['serverid'] if 'serverid' in kargs else None
+        self.server_id = kargs['serverid'] if 'serverid' in kargs else 133
         self.binlog = kargs['binlog'] if 'binlog' in kargs else None
 
         self.full_dump = kargs['full'] if 'full' in kargs else None
