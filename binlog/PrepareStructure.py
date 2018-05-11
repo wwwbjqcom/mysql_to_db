@@ -9,7 +9,7 @@ from lib.InitDB import InitMyDB
 
 class GetStruct:
     def __init__(self,host=None,port=None,user=None,passwd=None,socket=None):
-        self.connection = InitMyDB(mysql_host=host,mysql_port=port,mysql_user=user,mysql_password=passwd,unix_scoket=socket).Init()
+        self.connection = InitMyDB(mysql_host=host,mysql_port=port,mysql_user=user,mysql_password=passwd,unix_socket=socket).Init()
         self.cur = self.connection.cursor()
         self.cur.execute('set sql_log_bin=0;')
 
