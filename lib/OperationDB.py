@@ -145,7 +145,7 @@ class OperationDB:
                     if pymysql.__version__ < "0.6":
                         pkt = ReplConn.read_packet()
                     else:
-                        pkt = ReplConn._read_packet()
+                        pkt = ReplConn.read_packet()
                     at_pos = next_pos if next_pos else self.start_position
                     _parse_event = ParseEvent(packet=pkt,remote=True)
                     event_code, event_length ,next_pos= _parse_event.read_header()
