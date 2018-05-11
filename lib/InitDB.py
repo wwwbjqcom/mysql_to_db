@@ -10,11 +10,11 @@ from .Loging import Logging
 from contextlib import closing
 
 class InitMyDB(object):
-    def __init__(self,mysql_host=None,mysql_port=None,mysql_user=None,mysql_password=None,unix_scoket=None):
+    def __init__(self,mysql_host=None,mysql_port=None,mysql_user=None,mysql_password=None,unix_socket=None):
         self.mysql_user = mysql_user
         self.mysql_password = mysql_password
         self.mysql_port = mysql_port
-        self.socket_dir = unix_scoket
+        self.socket_dir = unix_socket
         self.mysql_host = mysql_host
 
     def Init(self):
