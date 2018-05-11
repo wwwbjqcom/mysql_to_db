@@ -91,10 +91,10 @@ class Prepare(object):
         if result:
             for idx in result:
                 if idx['Key_name'] == 'PRIMARY' and idx['Seq_in_index'] == 1:
-                    return idx['COLUMN_NAME']
+                    return idx['Column_name']
             else:
                 if idx['Non_unique'] == 0 and idx['Seq_in_index'] == 1:
-                    return idx['COLUMN_NAME']
+                    return idx['Column_name']
         Logging(msg='there is no suitable index to choose from {}.{},'.format(db,table),level='error')
         sys.exit()
 
