@@ -222,7 +222,7 @@ class ParseEvent(ReadPacket.Read):
         '''
         self.read_bytes(Metadata.fix_length + Metadata.binlog_row_event_extra_headers)
         columns = self.read_uint8()
-        columns_length = (columns + 7) / 8
+        columns_length = int((columns + 7) / 8)
         self.read_bytes(columns_length)
         if type == Metadata.binlog_events.UPDATE_ROWS_EVENT:
             self.read_bytes(columns_length)

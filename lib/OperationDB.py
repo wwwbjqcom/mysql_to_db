@@ -73,7 +73,7 @@ class OperationDB:
     def GetSQL(self,_values=None,event_code=None):
         table_struce_key = '{}:{}'.format(tmepdata.database_name,tmepdata.table_name)
 
-        if table_struce_key in tmepdata.table_pk_idex_list:
+        if tmepdata.table_pk_idex_list[table_struce_key]:
             '''获取主键所在index'''
             __pk_idx = tmepdata.table_pk_idex_list[table_struce_key]
             pk_where = self.PkJoin(__pk_idx,table_struce_key)
