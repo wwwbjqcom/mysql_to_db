@@ -78,7 +78,7 @@ class Prepare(object):
         cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
         result = cur.fetchall()
         total_rows = result[0]['count']
-        chunk = total_rows / len(self.thread_list)
+        chunk = int(total_rows / len(self.thread_list))
         #more_num =total_rows - (chunk * len(self.thread_list))
         return chunk
 
