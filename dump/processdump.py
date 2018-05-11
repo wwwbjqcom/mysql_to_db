@@ -38,7 +38,7 @@ class processdump(Prepare):
         super(processdump,self).__init__(threads=threads,src_kwargs=src_kwargs,des_kwargs=des_kwargs)
 
 
-        self.des_mysql_conn = InitMyDB(**des_kwargs)
+        self.des_mysql_conn = InitMyDB(**des_kwargs).Init()
         self.des_mysql_cur = self.des_mysql_conn.cursor()        #目标库连接
         self.databases = dbs
         self.tables = tables
