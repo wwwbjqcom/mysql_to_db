@@ -41,7 +41,7 @@ class OperationDB:
         self.binlog_file = kwargs['binlog_file']
         self.start_position = kwargs['start_position']
         self.conn = InitMyDB(mysql_host=self.host, mysql_port=self.port, mysql_user=self.user,
-                              mysql_password=self.passwd, unix_scoket=self.unix_socket).Init()
+                              mysql_password=self.passwd, unix_socket=self.unix_socket).Init()
 
 
         self.ignore_type = kwargs['ignore_type']
