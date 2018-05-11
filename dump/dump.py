@@ -55,7 +55,7 @@ class Dump:
                 _len = len(self.result[0])
                 _num = len(self.result)
                 for row in self.result:
-                    all_value += row
+                    all_value += row.values()
             else:
                 Logging(msg='return value is empty',level='warning')
                 break
