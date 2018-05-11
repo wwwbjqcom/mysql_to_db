@@ -123,12 +123,15 @@ class OperationDB:
         if self.full_dump:
             des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,'mysql_passwd':self.dpasswd}
             src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,'mysql_passwd':self.passwd,'mysql_socket':self.unix_socket}
-            dump_stat = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info).start()
-            if dump_stat is None:
+            _binlog_file,_binlog_pos = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info).start()
+            if _binlog_file is None or _binlog_pos is None:
                 sys.exit()
         ''''''
         Logging(msg='replication to master.............', level='info')
-        ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn,server_id=self.server_id).ReadPack()
+        if self.full_dump:
+            ReplConn = ReplicationMysql(log_file=_binlog_file, log_pos=_binlog_pos,mysql_connection=self.conn, server_id=self.server_id).ReadPack()
+        else:
+            ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn,server_id=self.server_id).ReadPack()
         table_struce_key = None
         next_pos = None
         binlog_file_name = self.binlog_file

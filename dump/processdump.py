@@ -86,6 +86,7 @@ class processdump(Prepare):
                     for table in tables:
                         _parameter = [dump, database, table, cur]
                         self.__dump_go(*_parameter)
+        return binlog_file,binlog_pos
 
     def __dump_go(self,dump_pro,database,tablename,cur):
         stat = dump_pro.prepare_structe(database=database, tablename=tablename)
