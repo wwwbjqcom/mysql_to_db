@@ -60,7 +60,7 @@ class Dump:
                 Logging(msg='return value is empty',level='warning')
                 break
 
-            sql = 'INSERT INTO {}.{} VALUES{}'.format(self.__combination_value_format(_len=_len,_num=_num))
+            sql = 'INSERT INTO {}.{} VALUES{}'.format(database,tablename,self.__combination_value_format(_len=_len,_num=_num))
 
             try:
                 self.des_mysql_cur.execute(sql,all_value)
@@ -108,5 +108,5 @@ class Dump:
     def __combination_value_format(self,_len,_num):
         '''拼接格式化字符'''
         one_format = '({})'.format(','.join(['%s' for i in range(_len)]))
-        all_ = ','.format(one_format for i in range(_num))
+        all_ = ','.join(one_format for i in range(_num))
         return all_
