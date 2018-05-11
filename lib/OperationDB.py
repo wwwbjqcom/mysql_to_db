@@ -121,8 +121,8 @@ class OperationDB:
     def Operation(self):
         '''全量导出入口'''
         if self.full_dump:
-            des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,'mysql_passwd':self.dpasswd}
-            src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,'mysql_passwd':self.passwd,'mysql_socket':self.unix_socket}
+            des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,'mysql_password':self.dpasswd}
+            src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,'mysql_password':self.passwd,'mysql_socket':self.unix_socket}
             _binlog_file,_binlog_pos = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info).start()
             if _binlog_file is None or _binlog_pos is None:
                 sys.exit()
