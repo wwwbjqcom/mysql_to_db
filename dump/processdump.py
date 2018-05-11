@@ -14,10 +14,9 @@ from lib.InitDB import InitMyDB
 
 
 class ThreadDump(threading.Thread):
-    def __init__(self, queue, out_queue,dump_pro,start_num,end_num,database,table,idx):
+    def __init__(self, queue, dump_pro,start_num,end_num,database,table,idx):
         threading.Thread.__init__(self)
         self.queue = queue
-        self.out_queue = out_queue
         self.dump_pro = dump_pro
         self.start_num = start_num
         self.end_num = end_num
@@ -98,7 +97,7 @@ class processdump(Prepare):
             sys.exit()
 
     def __mul_dump_go(self,dump_pro,database,tablename,cur):
-        chunks = self.get_chunks(cur=cur, database=database, tables=tablename)
+        chunks = self.get_chunks(cur=cur, databses=database, tables=tablename)
         stat = dump_pro.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=cur, db=database, table=tablename)
@@ -110,7 +109,7 @@ class processdump(Prepare):
                     end_num = None
                 dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
                             des_cur=self.des_thread_list[t]['cur'])
-                __dict_ = [self.queue, self.out_queue, dump, start_num, end_num, database, tablename, idx_name]
+                __dict_ = [self.queue, dump, start_num, end_num, database, tablename, idx_name]
                 t = ThreadDump(*__dict_)
                 t.start()
         else:
