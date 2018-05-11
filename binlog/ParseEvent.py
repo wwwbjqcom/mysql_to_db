@@ -356,7 +356,7 @@ class ParseEvent(ReadPacket.Read):
 
     def update_row_event(self, event_length, colums_type_id_list, metadata_dict, type):
         values = self.read_row_event(event_length, colums_type_id_list, metadata_dict, type)
-        __values = [values[i:i + 2] for i in xrange(0, len(values), 2)]
+        __values = [values[i:i + 2] for i in range(0, len(values), 2)]
 
     def row_event(self,event_length, colums_type_id_list, metadata_dict, type):
         pass
