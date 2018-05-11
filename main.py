@@ -69,7 +69,7 @@ def main(argv):
         elif o in ('-t','--tables'):
             _argv['tables'] = a
         elif o in ('-D','--database'):
-            _argv['databases'] = a
+            _argv['databases'] = a.
         elif o in ('--dhost'):
             _argv['dhost'] = a
         elif o in ('--dport'):

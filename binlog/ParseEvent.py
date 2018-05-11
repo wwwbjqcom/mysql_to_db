@@ -367,7 +367,7 @@ class ParseEvent(ReadPacket.Read):
         if type_code == Metadata.binlog_events.TABLE_MAP_EVENT:
             database_name, table_name, cloums_type_id_list, metadata_dict = self.read_table_map_event(
                 event_length)
-            return database_name, table_name, cloums_type_id_list, metadata_dict
+            return database_name.decode('utf-8'), table_name.decode('utf-8'), cloums_type_id_list, metadata_dict
         elif type_code in (Metadata.binlog_events.WRITE_ROWS_EVENT,Metadata.binlog_events.DELETE_ROWS_EVENT,
                            Metadata.binlog_events.UPDATE_ROWS_EVENT):
             values = self.read_row_event(event_length=event_length,colums_type_id_list=cloums_type_id_list,
