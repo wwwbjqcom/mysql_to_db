@@ -30,8 +30,15 @@ class OperationDB:
         self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']                           #目标库连接相关信息
         self.binlog = kwargs['binlog']                                                                                                              #是否在目标库记录binlog的参数
 
-        self.destination_conn =None
-        self.destination_cur = None
+        '''目标库连接'''
+        self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
+                                         mysql_password=self.dpasswd).Init()
+
+        self.destination_cur = self.destination_conn.cursor()
+        if self.binlog:
+            self.destination_cur.execute('set sql_log_bin=0;')  # 设置binlog参数
+            self.destination_cur.execute('SET SESSION wait_timeout = 2147483;')
+        ''''''
 
         self.databases = kwargs['databases']
         self.tables = kwargs['tables']
@@ -74,7 +81,7 @@ class OperationDB:
             __pk_idx = None
 
         if event_code == binlog_events.UPDATE_ROWS_EVENT:
-            __values = [_values[i:i + 2] for i in xrange(0, len(_values), 2)]
+            __values = [_values[i:i + 2] for i in range(0, len(_values), 2)]
             for row_value in __values:
                 if __pk_idx is not None:
                     cur_sql = 'UPDATE {}.{} SET {} WHERE {}'.format(tmepdata.database_name, tmepdata.table_name,
@@ -136,16 +143,6 @@ class OperationDB:
         _mysql_conn = GetStruct(host=self.host, port=self.port,user=self.user,passwd=self.passwd)
         _mysql_conn.CreateTmp()
         if ReplConn:
-            '''目标库连接'''
-            self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
-                                             mysql_password=self.dpasswd).Init()
-
-            self.destination_cur = self.destination_conn.cursor()
-            if self.binlog:
-                self.destination_cur.execute('set sql_log_bin=0;')  #设置binlog参数
-                self.destination_cur.execute('SET SESSION wait_timeout = 2147483;')
-            ''''''
-
             Logging(msg='replication succeed................', level='info')
             while True:
                 try:
