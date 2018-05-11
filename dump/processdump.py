@@ -2,7 +2,7 @@
 '''
 @author: xiaozhong
 '''
-from multiprocessing import Queue
+import queue
 import traceback
 import threading
 import sys
@@ -42,7 +42,7 @@ class processdump(Prepare):
         self.des_mysql_cur = self.des_mysql_conn.cursor()        #目标库连接
         self.databases = dbs
         self.tables = tables
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
 
     def start(self):
         conn,cur = self.init_conn(primary_t=True)          #初始化主连接
