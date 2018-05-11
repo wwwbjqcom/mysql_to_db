@@ -97,7 +97,7 @@ class processdump(Prepare):
             sys.exit()
 
     def __mul_dump_go(self,dump_pro,database,tablename,cur):
-        chunks = self.get_chunks(cur=cur, databses=database, tables=tablename)
+        chunks = self.get_chunks(cur=cur, databases=database, tables=tablename)
         stat = dump_pro.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=cur, db=database, table=tablename)
