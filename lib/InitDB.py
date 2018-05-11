@@ -6,7 +6,7 @@
 import pymysql,sys
 import traceback
 sys.path.append("..")
-from Loging import Logging
+from .Loging import Logging
 from contextlib import closing
 
 class InitMyDB(object):
