@@ -105,6 +105,6 @@ class Prepare(object):
         sql = 'select table_name from information_schema.tables where table_schema = %s;'
         cur.execute(sql,db)
         result = cur.fetchall()
-        return result
-
+        _tmp = [row['table_name'] for row in result]
+        return _tmp
 

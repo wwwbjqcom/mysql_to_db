@@ -73,7 +73,7 @@ class processdump(Prepare):
                 else:
                     tables = self.get_tables(cur=cur, db=database)
                     for tablename in tables:
-                        _parmeter = [dump, database, tablename.values()[0], cur]
+                        _parmeter = [dump, database, tablename, cur]
                         self.__mul_dump_go(*_parmeter)
                         self.__get_queue()
         else:
@@ -87,7 +87,7 @@ class processdump(Prepare):
                     '''全库导出'''
                     tables = self.get_tables(cur=cur,db=database)
                     for table in tables:
-                        _parameter = [dump, database, table.values()[0], cur]
+                        _parameter = [dump, database, table, cur]
                         self.__dump_go(*_parameter)
         return binlog_file,binlog_pos
 
