@@ -40,6 +40,8 @@
     6、默认在目标库插入时未记录binlog，如需记录binlog需添加--binlog参数
     7、如需要多线程断点续传，需分别指定不同的server_id
     8、在线导出数据会短暂全库读锁，在初始化完成所有链接并获取到当前binlog信息时会释放
+    9、全量导出途中如果某一个线程再操作途中发生错误将退出整个任务，以免发生数据不一致的情况
+    10、全量导出再添加binlog和start-position将无效
 
 python依赖包：
    pip install pymysql struct
