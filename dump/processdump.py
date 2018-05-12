@@ -69,12 +69,14 @@ class processdump(Prepare):
                     for tablename in self.tables:
                         _parmeter = [dump,database,tablename,cur]
                         self.__mul_dump_go(*_parmeter)
+                        self.__get_queue()
                 else:
                     tables = self.get_tables(cur=cur, db=database)
                     for tablename in tables.values():
                         _parmeter = [dump, database, tablename, cur]
                         self.__mul_dump_go(*_parmeter)
-            self.__get_queue()
+
+                        self.__get_queue()
         else:
             '''单线程导出'''
             for database in self.databases:
