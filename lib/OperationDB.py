@@ -35,9 +35,9 @@ class OperationDB:
                                          mysql_password=self.dpasswd).Init()
 
         self.destination_cur = self.destination_conn.cursor()
-        if self.binlog:
+        if self.binlog is None:
             self.destination_cur.execute('set sql_log_bin=0;')  # 设置binlog参数
-            self.destination_cur.execute('SET SESSION wait_timeout = 2147483;')
+        self.destination_cur.execute('SET SESSION wait_timeout = 2147483;')
         ''''''
 
         self.databases = kwargs['databases']
@@ -127,7 +127,7 @@ class OperationDB:
         if self.full_dump:
             des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,'mysql_password':self.dpasswd}
             src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,'mysql_password':self.passwd,'unix_socket':self.unix_socket}
-            _binlog_file,_binlog_pos = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info).start()
+            _binlog_file,_binlog_pos = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info,binlog=self.binlog).start()
             if _binlog_file is None or _binlog_pos is None:
                 sys.exit()
         ''''''

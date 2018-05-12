@@ -41,12 +41,15 @@ class Prepare(object):
                     except:
                         Logging(msg=traceback.format_exc(),level='error')
 
-    def init_des_conn(self):
+    def init_des_conn(self,binlog=None):
         for i in range(self.threads):
             conn = InitMyDB(**self.des_conn_info).Init()
             if conn:
                 try:
                     cur = conn.cursor()
+                    if binlog is None:
+                        self.cur.execute('set sql_log_bin=0;')  # 设置binlog参数
+                    self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
                     self.des_thread_list.append({'conn': conn, 'cur': cur})
                 except:
                     Logging(msg=traceback.format_exc(), level='error')

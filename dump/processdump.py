@@ -33,12 +33,15 @@ class ThreadDump(threading.Thread):
             return
 
 class processdump(Prepare):
-    def __init__(self,threads=None,dbs=None,tables=None,src_kwargs=None,des_kwargs=None):
+    def __init__(self,threads=None,dbs=None,tables=None,src_kwargs=None,des_kwargs=None,binlog=None):
         super(processdump,self).__init__(threads=threads,src_kwargs=src_kwargs,des_kwargs=des_kwargs)
 
-
+        self.binlog = binlog
         self.des_mysql_conn = InitMyDB(**des_kwargs).Init()
         self.des_mysql_cur = self.des_mysql_conn.cursor()        #目标库连接
+        if self.binlog is None:
+            self.des_mysql_cur.execute('set sql_log_bin=0')
+        self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
         self.databases = dbs
         self.tables = tables
         self.queue = queue.Queue()
@@ -55,7 +58,7 @@ class processdump(Prepare):
             sys.exit()
         if self.threads and self.threads > 1:
             self.init_conn()    #初始化所有线程连接
-            self.init_des_conn()
+            self.init_des_conn(binlog=self.binlog)
 
         cur.execute('UNLOCK TABLES')
         dump = Dump(cur=cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
