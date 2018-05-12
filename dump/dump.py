@@ -41,15 +41,20 @@ class Dump:
         return True
 
 
-    def dump_to_new_db(self,database,tablename,idx,limit_num=None,end=None):
-        limit_num = limit_num if limit_num else 0
+    def dump_to_new_db(self,database,tablename,idx,start_num=None,limit_num=None):
+        start_num = start_num if start_num else 0
         while True:
-            if end and (end - limit_num) < 1000:
-                sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, limit_num,(end-limit_num))
-                self.__get_from_source_db_list(sql=sql)
+            if limit_num:
+                if limit_num >= 1000:
+                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
+                    self.__get_from_source_db_limit1000(sql=sql)
+                else:
+                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,limit_num)
+                    self.__get_from_source_db_list(sql=sql)
             else:
-                sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,limit_num)
+                sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,start_num)
                 self.__get_from_source_db_limit1000(sql=sql)
+
             all_value = []
             if self.result:
                 _len = len(self.result[0])
@@ -73,7 +78,9 @@ class Dump:
 
             if len(self.result) < 1000:
                 break
-            limit_num += 1000
+            start_num += 1000
+            limit_num -= 1000
+
 
     def __retry_(self,sql,all_value):
         '''单个事务失败重试三次，如果都失败将退出整个迁移程序'''

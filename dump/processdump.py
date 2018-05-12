@@ -103,15 +103,16 @@ class processdump(Prepare):
             idx_name = self.check_pri(cur=cur, db=database, table=tablename)
 
             start_num = 0
-            end_num = chunks
+            limit_num = chunks
             for t in range(len(self.thread_list)):
                 if len(self.thread_list) - t == 1:
-                    end_num = None
+                    limit_num = None
                 dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
                             des_cur=self.des_thread_list[t]['cur'])
-                __dict_ = [self.queue, dump, start_num, end_num, database, tablename, idx_name]
+                __dict_ = [self.queue, dump, start_num, limit_num, database, tablename, idx_name]
                 t = ThreadDump(*__dict_)
                 t.start()
+                start_num += chunks
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
