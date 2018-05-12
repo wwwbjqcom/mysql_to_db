@@ -79,7 +79,10 @@ class Dump:
             if len(self.result) < 1000:
                 break
             start_num += 1000
-            limit_num = limit_num - 1000
+            if limit_num:
+                limit_num = limit_num - 1000
+                if limit_num == 0:
+                    break
 
 
     def __retry_(self,sql,all_value):
