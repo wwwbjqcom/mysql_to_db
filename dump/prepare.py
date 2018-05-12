@@ -102,9 +102,9 @@ class Prepare(object):
         sys.exit()
 
     def get_tables(self,cur,db):
-        sql = 'select table_name from tables where table_schema = %s;'
+        sql = 'select table_name from information_schema.tables where table_schema = %s;'
         cur.execute(sql,db)
         result = cur.fetchall()
-        return result[0]['table_name']
+        return result[0]
 
 
