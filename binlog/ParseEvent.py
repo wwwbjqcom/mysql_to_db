@@ -150,7 +150,7 @@ class ParseEvent(ReadPacket.Read):
                 bytes += 1
             elif colums_type_id_list[idex] in [Metadata.column_type_dict.MYSQL_TYPE_STRING]:
                 _type, metadata, = struct.unpack('=BB', self.read_bytes(2))
-                colums_type_id_list[idex] = _type
+                #colums_type_id_list[idex] = _type
                 metadata_dict[idex] = metadata
                 bytes += 2
 
