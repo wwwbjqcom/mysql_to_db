@@ -1,4 +1,4 @@
-#该工具可以结合mysqldump备份工具实现在线迁移库、表，主要功能通过提供的binlog文件及position模拟slave追加数据到目标库,基于python3.6.5开发
+#该工具可以结合mysqldump备份工具实现在线迁移库、表，也可使用全量导出的功能直接在线迁移，主要功能通过提供的binlog文件及position模拟slave追加数据到目标库,基于python3.6.5开发
 ##功能：
     1、通过binlog追加dml数据到目标库
     2、可通过库名、表名过滤
@@ -11,8 +11,8 @@
    Usage:
        Options:
             -h [--help] : print help message
-      		  -f [--binlogfile] : the file path
-      		  --start-position : Start reading the binlog at position N. Applies to the
+      		-f [--binlogfile] : the file path
+      		--start-position : Start reading the binlog at position N. Applies to the
                                     first binlog passed on the command line.
             -t [--tables] : table name list ,"t1,t2,t3"
             -D [--databases] : database name list ,"db1,db2,db3"
@@ -35,17 +35,21 @@
     1、实时记录的binlog是通过临时库表实现，所以账号权限需有对应库的权限，库名为dump2db
     2、需要information_schema.columns表的查询权限以及replication slave权限
     3、目标库增删改权限
-    4、只实现了dml语句产生的数据追加操作
+    4、只实现了dml语句产生的数据追加操作，不会同步迁移途中产生的DDL语句
     5、可过滤delete、inser、update中的某个操作
     6、默认在目标库插入时未记录binlog，如需记录binlog需添加--binlog参数
-    7、如需要多线程断点续传，需分别指定不同的server_id
+    7、如需要多线程断点续传，需分别指定不同的server_id，且在重启恢复同步时需手动获取dump2db的binlog信息并设定参数
     8、在线导出数据会短暂全库读锁，在初始化完成所有链接并获取到当前binlog信息时会释放
-    9、全量导出途中如果某一个线程再操作途中发生错误将退出整个任务，以免发生数据不一致的情况
-    10、全量导出再添加binlog和start-position将无效
+    9、全量导出途中如果某一个线程在操作途中发生错误将退出整个任务，以免发生数据不一致的情况
+    10、设置了--full参数再设置binlog和start-position将无效
     11、导出数据到目标库会首先删除对应的目标表，并创建一个空表
+    12、至少指定一个或多个数据库，表名可不指定，不指定表名时将对改库下所有表进行操作
 
 python依赖包：
    pip install pymysql struct
 
 示例语句：
-   python main.py  -f mysql-bin.000007 --start-position 114991021 -u root -p root -H 192.168.1.3  --dhost 192.168.1.2 --dport 3306 --duser root --dpasswd root -D db1,db2 -t t1,t2 --full --threads 2
+   同步参数：
+        python main.py  -f mysql-bin.000007 --start-position 114991021 -u root -p root -H 192.168.1.3  --dhost 192.168.1.2 --dport 3306 --duser root --dpasswd root -D db1,db2 -t t1,t2
+   全量迁移：
+        python main.py  -u root -p root -H 192.168.1.3  --dhost 192.168.1.2 --dport 3306 --duser root --dpasswd root -D db1,db2 -t t1,t2 --full --threads 3
