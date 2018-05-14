@@ -18,6 +18,7 @@ class tmepdata:
     table_pk_idex_list = {}             #主键索引列表
     table_struct_type_list = {}         #字段类型列表
     unsigned_list = {}
+    thread_id = None
 
 class OperationDB:
     def __init__(self,**kwargs):
@@ -47,7 +48,7 @@ class OperationDB:
         self.conn = InitMyDB(mysql_host=self.host, mysql_port=self.port, mysql_user=self.user,
                               mysql_password=self.passwd, unix_socket=self.unix_socket).Init()
 
-
+        self.ithread = kwargs['ithread']
         self.ignore_type = kwargs['ignore_type']
         self.ignore = {'delete':binlog_events.DELETE_ROWS_EVENT,'update':binlog_events.UPDATE_ROWS_EVENT,'insert':binlog_events.WRITE_ROWS_EVENT}
         self.server_id = kwargs['server_id']
@@ -122,6 +123,23 @@ class OperationDB:
             self.destination_conn.rollback()
             Logging(msg='failed!!!!', level='error')
             sys.exit()
+
+    def __execute_code(self,_parse_event,event_code,event_length,table_struce_key):
+        if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
+            if self.tables:
+                if tmepdata.table_name in self.tables:
+                    _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
+                                                    cloums_type_id_list=tmepdata.cloums_type_id_list,
+                                                    metadata_dict=tmepdata.metadata_dict,
+                                                    unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
+                    self.GetSQL(_values=_values, event_code=event_code)
+            else:
+                _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
+                                                cloums_type_id_list=tmepdata.cloums_type_id_list,
+                                                metadata_dict=tmepdata.metadata_dict,
+                                                unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
+                self.GetSQL(_values=_values, event_code=event_code)
+
     def Operation(self):
         '''全量导出入口'''
         if self.full_dump:
@@ -156,20 +174,20 @@ class OperationDB:
                     if event_code is None:
                         continue
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
-                        if self.ignore_type and self.ignore[self.ignore_type] == event_code:
-                            pass
-                        else:
-                            if tmepdata.database_name and tmepdata.table_name and tmepdata.database_name in self.databases:
-                                if self.tables:
-                                    if tmepdata.table_name in self.tables:
-                                        _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,cloums_type_id_list=tmepdata.cloums_type_id_list,
-                                                                        metadata_dict=tmepdata.metadata_dict,unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
-                                        self.GetSQL(_values=_values, event_code=event_code)
+                        if self.ithread:
+                            if self.ithread == tmepdata.thread_id:
+                                if self.ignore_type and self.ignore[self.ignore_type] == event_code:
+                                    pass
                                 else:
-                                    _values = _parse_event.GetValue(type_code=event_code, event_length=event_length,
-                                                                    cloums_type_id_list=tmepdata.cloums_type_id_list,
-                                                                    metadata_dict=tmepdata.metadata_dict,unsigned_list=tmepdata.table_struct_type_list[table_struce_key])
-                                    self.GetSQL(_values=_values, event_code=event_code)
+                                    self.__execute_code(_parse_event=_parse_event,event_code=event_code,
+                                                        event_length=event_length,table_struce_key=table_struce_key)
+                        else:
+                            if self.ignore_type and self.ignore[self.ignore_type] == event_code:
+                                pass
+                            else:
+                                self.__execute_code(_parse_event=_parse_event, event_code=event_code,
+                                                    event_length=event_length, table_struce_key=table_struce_key)
+
                     elif event_code == binlog_events.TABLE_MAP_EVENT:
                         tmepdata.database_name, tmepdata.table_name, tmepdata.cloums_type_id_list, tmepdata.metadata_dict=_parse_event.GetValue(type_code=event_code,event_length=event_length)  # 获取event数据
                         table_struce_key = '{}:{}'.format(tmepdata.database_name, tmepdata.table_name)
@@ -188,6 +206,9 @@ class OperationDB:
                                     tmepdata.table_struct_type_list[table_struce_key] = column_type_list
                     elif event_code == binlog_events.ROTATE_EVENT:
                             binlog_file_name = _parse_event.read_rotate_log_event(event_length=event_length)
+                    elif event_code == binlog_events.QUERY_EVENT:
+                        if self.ithread:
+                            tmepdata.thread_id,_,_ = _parse_event.read_query_event(event_length=event_length)
                 except:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()

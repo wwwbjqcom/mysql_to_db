@@ -29,6 +29,7 @@
             --full : whether the total quantity is exported. default false
             --threads : dump threads,default 1 if --full is true
             --ignore : ignore type [delete,insert,update],allows filtering of the operation
+            --ithreads : ignore thread id
             --serverid : default 133
 
 注意项：

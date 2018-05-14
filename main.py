@@ -30,6 +30,7 @@ def Usage():
             --full : whether the total quantity is exported. default false
             --threads : dump threads,default 1 if --full is true
             --ignore : ignore type [delete,insert,update],allows filtering of the operation
+            --ithreads : ignore thread id
             --serverid : default 133
             
     	    """
@@ -42,7 +43,7 @@ def main(argv):
         opts, args = getopt.getopt(argv[1:], 'hf:H:u:p:P:D:t:S:i:',
                                    ['help', 'binlogfile=', 'start-position=', 'host=', 'user=', 'passwd=',
                                     'port=', 'database=', 'tables=','dhost=','dport=','duser=','dpasswd=',
-                                    'socket=','full','binlog','threads=','ignore=','serverid='])
+                                    'socket=','full','binlog','threads=','ignore=','serverid=','ithread='])
     except getopt.GetoptError:
         Usage()
         sys.exit(2)
@@ -86,6 +87,8 @@ def main(argv):
             _argv['threads'] = int(a)
         elif o in ('--binlog'):
             _argv['binlog'] = True
+        elif o in ('--ithread'):
+            _argv['ithread'] = int(a)
         else:
             print('unhandled option')
             sys.exit(3)
