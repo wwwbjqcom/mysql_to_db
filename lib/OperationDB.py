@@ -173,18 +173,15 @@ class OperationDB:
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
                         if self.ithread:
                             if self.ithread == tmepdata.thread_id:
-                                pass
-                            else:
-                                if self.ignore_type and self.ignore[self.ignore_type] == event_code:
-                                    pass
-                                else:
-                                    self.__execute_code(_parse_event=_parse_event,event_code=event_code,
-                                                        event_length=event_length,table_struce_key=table_struce_key)
+                                continue
+                            if self.ignore_type and self.ignore[self.ignore_type] == event_code:
+                                continue
+                            self.__execute_code(_parse_event=_parse_event,event_code=event_code,
+                                                    event_length=event_length,table_struce_key=table_struce_key)
                         else:
                             if self.ignore_type and self.ignore[self.ignore_type] == event_code:
-                                pass
-                            else:
-                                self.__execute_code(_parse_event=_parse_event, event_code=event_code,
+                                continue
+                            self.__execute_code(_parse_event=_parse_event, event_code=event_code,
                                                     event_length=event_length, table_struce_key=table_struce_key)
 
                     elif event_code == binlog_events.TABLE_MAP_EVENT:
@@ -198,11 +195,11 @@ class OperationDB:
                                         tmepdata.table_struct_list[table_struce_key] = column_list
                                         tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
                                         tmepdata.table_struct_type_list[table_struce_key] = column_type_list
-                                else:
-                                    column_list, pk_idex, column_type_list = _mysql_conn.GetColumn(tmepdata.database_name, tmepdata.table_name)
-                                    tmepdata.table_struct_list[table_struce_key] = column_list
-                                    tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
-                                    tmepdata.table_struct_type_list[table_struce_key] = column_type_list
+                                    continue
+                                column_list, pk_idex, column_type_list = _mysql_conn.GetColumn(tmepdata.database_name, tmepdata.table_name)
+                                tmepdata.table_struct_list[table_struce_key] = column_list
+                                tmepdata.table_pk_idex_list[table_struce_key] = pk_idex
+                                tmepdata.table_struct_type_list[table_struce_key] = column_type_list
                     elif event_code == binlog_events.ROTATE_EVENT:
                             binlog_file_name = _parse_event.read_rotate_log_event(event_length=event_length)
                     elif event_code == binlog_events.QUERY_EVENT:
