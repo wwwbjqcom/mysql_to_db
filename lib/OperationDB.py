@@ -162,13 +162,10 @@ class OperationDB:
         _mysql_conn.CreateTmp()
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
+            at_pos = self.start_position
             while 1:
                 try:
-                    if pymysql.__version__ < "0.6":
-                        pkt = ReplConn.read_packet()
-                    else:
-                        pkt = ReplConn._read_packet()
-                    at_pos = next_pos if next_pos else self.start_position
+                    pkt = ReplConn._read_packet()
                     _parse_event = ParseEvent(packet=pkt,remote=True)
                     event_code, event_length ,next_pos= _parse_event.read_header()
                     if event_code is None:
@@ -176,6 +173,8 @@ class OperationDB:
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
                         if self.ithread:
                             if self.ithread == tmepdata.thread_id:
+                                pass
+                            else:
                                 if self.ignore_type and self.ignore[self.ignore_type] == event_code:
                                     pass
                                 else:
@@ -214,6 +213,7 @@ class OperationDB:
                     ReplConn.close()
                     break
                 _mysql_conn.SaveStatus(logname=binlog_file_name,at_pos=at_pos,next_pos=next_pos,server_id=self.server_id)
+                at_pos = next_pos
         else:
             Logging(msg='replication failed................', level='error')
             _mysql_conn.close()
