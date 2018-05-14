@@ -48,8 +48,8 @@ class Prepare(object):
                 try:
                     cur = conn.cursor()
                     if binlog is None:
-                        self.cur.execute('set sql_log_bin=0;')  # 设置binlog参数
-                    self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
+                        cur.execute('set sql_log_bin=0;')  # 设置binlog参数
+                    cur.execute('SET SESSION wait_timeout = 2147483;')
                     self.des_thread_list.append({'conn': conn, 'cur': cur})
                 except:
                     Logging(msg=traceback.format_exc(), level='error')

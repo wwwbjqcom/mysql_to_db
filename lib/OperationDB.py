@@ -162,7 +162,7 @@ class OperationDB:
         _mysql_conn.CreateTmp()
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
-            while True:
+            while 1:
                 try:
                     if pymysql.__version__ < "0.6":
                         pkt = ReplConn.read_packet()
