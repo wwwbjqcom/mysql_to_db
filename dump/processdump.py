@@ -56,6 +56,7 @@ class processdump(Prepare):
             self.close(cur,conn)
             Logging(msg='invalid master info , file {} position {}'.format(binlog_file,binlog_pos),level='error')
             sys.exit()
+
         if self.threads and self.threads > 1:
             self.init_conn()    #初始化所有线程连接
             self.init_des_conn(binlog=self.binlog)
