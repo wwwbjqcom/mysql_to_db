@@ -33,10 +33,13 @@ class GetStruct:
     def CreateTmp(self):
         self.cur.execute('CREATE DATABASE IF NOT EXISTS dump2db;')                                                                      #创建临时库
         self.cur.execute('DROP TABLE IF EXISTS dump2db.dump_status;')                                                                           #删除表
-        self.cur.execute('CREATE TABLE dump2db.dump_status(id INT,logname VARCHAR(100),at_pos BIGINT,next_pos BIGINT,PRIMARY KEY(id));')    #创建临时表
+        self.cur.execute('CREATE TABLE dump2db.dump_status(id INT,exe_gtid VARCHAR(50),logname VARCHAR(100),at_pos BIGINT,next_pos BIGINT,PRIMARY KEY(id));')    #创建临时表
 
-    def SaveStatus(self,logname,at_pos,next_pos,server_id):
-        sql = 'INSERT INTO dump2db.dump_status(id,logname,at_pos,next_pos) VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE logname=%s,at_pos=%s,next_pos=%s;'
+    def SaveStatus(self,logname,at_pos,next_pos,server_id,gtid=None):
+        if gtid:
+            sql = 'INSERT INTO dump2db.dump_status(id,exe_gtid,logname,at_pos,next_pos) VALUES(%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE exe_gtid=%s,logname=%s,at_pos=%s,next_pos=%s;'
+        else:
+            sql = 'INSERT INTO dump2db.dump_status(id,logname,at_pos,next_pos) VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE logname=%s,at_pos=%s,next_pos=%s;'
         self.cur.execute(sql,(server_id,logname,at_pos,next_pos,logname,at_pos,next_pos))
         self.connection.commit()
 
