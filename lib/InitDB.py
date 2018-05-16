@@ -24,7 +24,7 @@ class InitMyDB(object):
                                               password=self.mysql_password, port=self.mysql_port,
                                               db='',
                                               charset='utf8mb4',
-                                              unix_socket=self.socket_dir,
+                                              unix_socket=self.socket_dir,max_allowed_packet=536870912,
                                               cursorclass=pymysql.cursors.DictCursor)
             return connection
         except pymysql.Error:
