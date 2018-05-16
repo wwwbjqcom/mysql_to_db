@@ -90,6 +90,12 @@ class processdump(Prepare):
                     for table in tables:
                         _parameter = [dump, database, table, cur]
                         self.__dump_go(*_parameter)
+        self.close(cur,conn)
+        if self.threads and self.threads > 1:
+            for thread in self.thread_list:
+                self.close(thread['cur'],thread['conn'])
+            for thread in self.des_thread_list:
+                self.close(thread['cur'], thread['conn'])
         return binlog_file,binlog_pos
 
     def __dump_go(self,dump_pro,database,tablename,cur):
