@@ -56,14 +56,14 @@ class Dump:
                 self.__get_from_source_db_limit1000(sql=sql)
 
             all_value = []
-            if self.result:
-                _len = len(self.result[0])
-                _num = len(self.result)
-                for row in self.result:
-                    all_value += row.values()
-            else:
-                Logging(msg='return value is empty',level='warning')
-                break
+            #if self.result:
+            _len = len(self.result[0])
+            _num = len(self.result)
+            for row in self.result:
+                all_value += row.values()
+            #else:
+            #    Logging(msg='return value is empty',level='warning')
+            #    break
 
             sql = 'INSERT INTO {}.{} VALUES{}'.format(database,tablename,self.__combination_value_format(_len=_len,_num=_num))
 

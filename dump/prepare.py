@@ -50,7 +50,6 @@ class Prepare(object):
                     if binlog is None:
                         cur.execute('set sql_log_bin=0;')  # 设置binlog参数
                     cur.execute('SET SESSION wait_timeout = 2147483;')
-                    cur.execute('SET SESSION net_write_timeout = 2147483')
                     self.des_thread_list.append({'conn': conn, 'cur': cur})
                 except:
                     Logging(msg=traceback.format_exc(), level='error')
