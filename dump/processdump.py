@@ -138,6 +138,7 @@ class processdump(Prepare):
             except:
                 pass
             self.__init_info()
+            chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
