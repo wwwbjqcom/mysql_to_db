@@ -50,7 +50,6 @@ class Prepare(object):
                     if binlog is None:
                         cur.execute('set sql_log_bin=0;')  # 设置binlog参数
                     cur.execute('SET SESSION wait_timeout = 2147483;')
-                    cur.execute('SET SESSION max_allowed_packet = 536870912;')
                     self.des_thread_list.append({'conn': conn, 'cur': cur})
                 except:
                     Logging(msg=traceback.format_exc(), level='error')
@@ -65,7 +64,6 @@ class Prepare(object):
         '''初始化各连接事务级别'''
         try:
             cur.execute('SET SESSION wait_timeout = 2147483;')
-            cur.execute('SET SESSION max_allowed_packet = 536870912;')
             if primary_t:
                 cur.execute('FLUSH TABLES WITH READ LOCK;')
             cur.execute('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;')
