@@ -42,18 +42,21 @@ class processdump(Prepare):
         if self.binlog is None:
             self.des_mysql_cur.execute('set sql_log_bin=0')
         self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
+
+        self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
+
         self.databases = dbs
         self.tables = tables
         self.queue = queue.Queue()
 
     def start(self):
-        conn,cur = self.init_conn(primary_t=True)          #初始化主连接
+
         binlog_file,binlog_pos = self.master_info(cur=cur)
         if binlog_file and binlog_pos:
             pass
         else:
-            cur.execute('UNLOCK TABLES')
-            self.close(cur,conn)
+            self.cur.execute('UNLOCK TABLES')
+            self.close(self.cur,self.conn)
             Logging(msg='invalid master info , file {} position {}'.format(binlog_file,binlog_pos),level='error')
             sys.exit()
 
@@ -61,20 +64,20 @@ class processdump(Prepare):
             self.init_conn()    #初始化所有线程连接
             self.init_des_conn(binlog=self.binlog)
 
-        cur.execute('UNLOCK TABLES')
-        dump = Dump(cur=cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
+        self.cur.execute('UNLOCK TABLES')
+        dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
         if self.threads and self.threads > 1:
             '''多线程导出'''
             for database in self.databases:
                 if self.tables:
                     for tablename in self.tables:
-                        _parmeter = [dump,database,tablename,cur]
+                        _parmeter = [dump,database,tablename]
                         self.__mul_dump_go(*_parmeter)
                         self.__get_queue()
                 else:
-                    tables = self.get_tables(cur=cur, db=database)
+                    tables = self.get_tables(cur=self.cur, db=database)
                     for tablename in tables:
-                        _parmeter = [dump, database, tablename, cur]
+                        _parmeter = [dump, database, tablename]
                         self.__mul_dump_go(*_parmeter)
                         self.__get_queue()
         else:
@@ -82,15 +85,15 @@ class processdump(Prepare):
             for database in self.databases:
                 if self.tables:
                     for tablename in self.tables:
-                        _parameter = [dump,database,tablename,cur]
+                        _parameter = [dump,database,tablename]
                         self.__dump_go(*_parameter)
                 else:
                     '''全库导出'''
-                    tables = self.get_tables(cur=cur,db=database)
+                    tables = self.get_tables(cur=self.cur,db=database)
                     for table in tables:
-                        _parameter = [dump, database, table, cur]
+                        _parameter = [dump, database, table]
                         self.__dump_go(*_parameter)
-        self.close(cur,conn)
+        self.close(self.cur,self.conn)
         if self.threads and self.threads > 1:
             for thread in self.thread_list:
                 self.close(thread['cur'],thread['conn'])
@@ -98,20 +101,22 @@ class processdump(Prepare):
                 self.close(thread['cur'], thread['conn'])
         return binlog_file,binlog_pos
 
-    def __dump_go(self,dump_pro,database,tablename,cur):
+    def __dump_go(self,dump_pro,database,tablename):
         stat = dump_pro.prepare_structe(database=database, tablename=tablename)
         if stat:
-            idx_name = self.check_pri(cur=cur, db=database, table=tablename)
+            idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
             dump_pro.dump_to_new_db(database=database, tablename=tablename, idx=idx_name)
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
 
-    def __mul_dump_go(self,dump_pro,database,tablename,cur):
-        chunks = self.get_chunks(cur=cur, databases=database, tables=tablename)
+    def __mul_dump_go(self,dump_pro,database,tablename):
+        chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
+        if chunks is None:
+            self.conn, self.cur = self.init_conn(primary_t=True)  # 重新初始化主连接
         stat = dump_pro.prepare_structe(database=database, tablename=tablename)
         if stat:
-            idx_name = self.check_pri(cur=cur, db=database, table=tablename)
+            idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
 
             __start_num = 0
             __limit_num = chunks
