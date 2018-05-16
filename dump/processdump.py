@@ -50,16 +50,15 @@ class processdump(Prepare):
 
         self.__init_info()
 
-    def __init_info(self,retry=None):
+    def __init_info(self):
+        '''初始化主链接'''
         self.des_mysql_conn = InitMyDB(**self.des_kwargs).Init()
         self.des_mysql_cur = self.des_mysql_conn.cursor()  # 目标库连接
+        self.des_thread_list.append({'conn': self.des_mysql_conn, 'cur': self.des_mysql_cur})
         if self.binlog is None:
             self.des_mysql_cur.execute('set sql_log_bin=0')
         self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
-        if retry:
-            self.conn, self.cur = self.init_conn() # 初始化主连接
-        else:
-            self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
+        self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
         self.dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
 
 
@@ -115,13 +114,6 @@ class processdump(Prepare):
         return binlog_file,binlog_pos
 
     def __dump_go(self,database,tablename):
-        '''每个表开始操作时重新初始化基础链接'''
-        try:
-            self.close(self.cur, self.conn)
-            self.close(self.des_mysql_cur, self.des_mysql_conn)
-            self.__init_info(retry=True)
-        except:
-            pass
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
@@ -132,15 +124,6 @@ class processdump(Prepare):
 
     def __mul_dump_go(self,database,tablename):
         chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
-        if chunks is None:
-            '''在对表初始化时失败将重新初始化基础链接'''
-            try:
-                self.close(self.cur,self.conn)
-                self.close(self.des_mysql_cur,self.des_mysql_conn)
-            except:
-                pass
-            self.__init_info(retry=True)
-            chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)

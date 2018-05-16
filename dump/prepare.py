@@ -25,6 +25,7 @@ class Prepare(object):
                     state = self.__init_transaction(cur=cur,primary_t=True)
                     if state is None:
                         sys.exit()
+                    self.thread_list.append({'conn': conn, 'cur': cur})
                     return conn,cur
                 except pymysql.Error:
                     Logging(msg=traceback.format_exc(), level='error')
@@ -38,7 +39,6 @@ class Prepare(object):
                         state = self.__init_transaction(cur=cur)
                         if state:
                             self.thread_list.append({'conn':conn,'cur':cur})
-                        return conn,cur
                     except:
                         Logging(msg=traceback.format_exc(),level='error')
 
@@ -79,10 +79,7 @@ class Prepare(object):
         conn.close()
 
     def get_chunks(self,cur,databases,tables):
-        try:
-            cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
-        except pymysql.Error:
-            return None
+        cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
         result = cur.fetchall()
         total_rows = result[0]['count']
         chunk = int(total_rows / len(self.thread_list))
