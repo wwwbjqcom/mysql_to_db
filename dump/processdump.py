@@ -50,14 +50,16 @@ class processdump(Prepare):
 
         self.__init_info()
 
-    def __init_info(self):
+    def __init_info(self,retry=None):
         self.des_mysql_conn = InitMyDB(**self.des_kwargs).Init()
         self.des_mysql_cur = self.des_mysql_conn.cursor()  # 目标库连接
         if self.binlog is None:
             self.des_mysql_cur.execute('set sql_log_bin=0')
         self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
-
-        self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
+        if retry:
+            self.conn, self.cur = self.init_conn()  # 初始化主连接
+        else:
+            self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
         self.dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
 
 
@@ -117,7 +119,7 @@ class processdump(Prepare):
         try:
             self.close(self.cur, self.conn)
             self.close(self.des_mysql_cur, self.des_mysql_conn)
-            self.__init_info()
+            self.__init_info(retry=True)
         except:
             pass
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
@@ -137,7 +139,7 @@ class processdump(Prepare):
                 self.close(self.des_mysql_cur,self.des_mysql_conn)
             except:
                 pass
-            self.__init_info()
+            self.__init_info(retry=True)
             chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
