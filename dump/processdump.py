@@ -37,21 +37,32 @@ class processdump(Prepare):
         super(processdump,self).__init__(threads=threads,src_kwargs=src_kwargs,des_kwargs=des_kwargs)
 
         self.binlog = binlog
-        self.des_mysql_conn = InitMyDB(**des_kwargs).Init()
-        self.des_mysql_cur = self.des_mysql_conn.cursor()        #目标库连接
-        if self.binlog is None:
-            self.des_mysql_cur.execute('set sql_log_bin=0')
-        self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
-
-        self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
+        self.des_kwargs = des_kwargs
 
         self.databases = dbs
         self.tables = tables
         self.queue = queue.Queue()
 
-    def start(self):
+        self.des_mysql_conn = None
+        self.des_mysql_cur = None
+        self.conn,self.cur = None,None
+        self.dump = None
 
-        binlog_file,binlog_pos = self.master_info(cur=cur)
+        self.__init_info()
+
+    def __init_info(self):
+        self.des_mysql_conn = InitMyDB(**self.des_kwargs).Init()
+        self.des_mysql_cur = self.des_mysql_conn.cursor()  # 目标库连接
+        if self.binlog is None:
+            self.des_mysql_cur.execute('set sql_log_bin=0')
+        self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
+
+        self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
+        self.dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
+
+
+    def start(self):
+        binlog_file,binlog_pos = self.master_info(cur=self.cur)
         if binlog_file and binlog_pos:
             pass
         else:
@@ -65,19 +76,19 @@ class processdump(Prepare):
             self.init_des_conn(binlog=self.binlog)
 
         self.cur.execute('UNLOCK TABLES')
-        dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
+
         if self.threads and self.threads > 1:
             '''多线程导出'''
             for database in self.databases:
                 if self.tables:
                     for tablename in self.tables:
-                        _parmeter = [dump,database,tablename]
+                        _parmeter = [database,tablename]
                         self.__mul_dump_go(*_parmeter)
                         self.__get_queue()
                 else:
                     tables = self.get_tables(cur=self.cur, db=database)
                     for tablename in tables:
-                        _parmeter = [dump, database, tablename]
+                        _parmeter = [database, tablename]
                         self.__mul_dump_go(*_parmeter)
                         self.__get_queue()
         else:
@@ -85,13 +96,13 @@ class processdump(Prepare):
             for database in self.databases:
                 if self.tables:
                     for tablename in self.tables:
-                        _parameter = [dump,database,tablename]
+                        _parameter = [database,tablename]
                         self.__dump_go(*_parameter)
                 else:
                     '''全库导出'''
                     tables = self.get_tables(cur=self.cur,db=database)
                     for table in tables:
-                        _parameter = [dump, database, table]
+                        _parameter = [database, table]
                         self.__dump_go(*_parameter)
         self.close(self.cur,self.conn)
         if self.threads and self.threads > 1:
@@ -101,26 +112,40 @@ class processdump(Prepare):
                 self.close(thread['cur'], thread['conn'])
         return binlog_file,binlog_pos
 
-    def __dump_go(self,dump_pro,database,tablename):
-        stat = dump_pro.prepare_structe(database=database, tablename=tablename)
+    def __dump_go(self,database,tablename):
+        '''每个表开始操作时重新初始化基础链接'''
+        try:
+            self.close(self.cur, self.conn)
+            self.close(self.des_mysql_cur, self.des_mysql_conn)
+            self.__init_info()
+        except:
+            pass
+        stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
-            dump_pro.dump_to_new_db(database=database, tablename=tablename, idx=idx_name)
+            self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name)
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
 
-    def __mul_dump_go(self,dump_pro,database,tablename):
+    def __mul_dump_go(self,database,tablename):
         chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
         if chunks is None:
-            self.conn, self.cur = self.init_conn(primary_t=True)  # 重新初始化主连接
-        stat = dump_pro.prepare_structe(database=database, tablename=tablename)
+            '''在对表初始化时失败将重新初始化基础链接'''
+            try:
+                self.close(self.cur,self.conn)
+                self.close(self.des_mysql_cur,self.des_mysql_conn)
+            except:
+                pass
+            self.__init_info()
+        stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
 
             __start_num = 0
             __limit_num = chunks
             for t in range(len(self.thread_list)):
+                '''多线程导出每个线程对mysql链接及基本信息'''
                 if len(self.thread_list) - t == 1:
                     __limit_num = None
                 dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
