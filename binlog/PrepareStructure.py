@@ -17,7 +17,6 @@ class GetStruct:
         '''args顺序 database、tablename'''
         column_list = []
         column_type_list = []
-        pk_idex = None
 
         sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
         self.cur.execute(sql,args=args)

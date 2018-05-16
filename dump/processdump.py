@@ -14,7 +14,7 @@ from lib.InitDB import InitMyDB
 
 
 class ThreadDump(threading.Thread):
-    def __init__(self, queue, dump_pro,start_num,end_num,database,table,idx):
+    def __init__(self, queue, dump_pro,start_num,end_num,database,table,idx,pri_idx):
         threading.Thread.__init__(self)
         self.queue = queue
         self.dump_pro = dump_pro
@@ -23,9 +23,10 @@ class ThreadDump(threading.Thread):
         self.database = database
         self.table = table
         self.idx = idx
+        self.pri_idx = pri_idx
     def run(self):
         try:
-            __tuple_ = [self.database,self.table,self.idx,self.start_num,self.end_num]
+            __tuple_ = [self.database,self.table,self.idx,self.pri_idx,self.start_num,self.end_num]
             self.dump_pro.dump_to_new_db(*__tuple_)
             self.queue.put('1001')
         except:
@@ -116,8 +117,8 @@ class processdump(Prepare):
     def __dump_go(self,database,tablename):
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
-            idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
-            self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name)
+            idx_name, = self.check_pri(cur=self.cur, db=database, table=tablename)
+            self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name,pri_idx=pri_idx)
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
@@ -126,7 +127,7 @@ class processdump(Prepare):
         chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
-            idx_name = self.check_pri(cur=self.cur, db=database, table=tablename)
+            idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
 
             __start_num = 0
             __limit_num = chunks
@@ -136,7 +137,7 @@ class processdump(Prepare):
                     __limit_num = None
                 dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
                             des_cur=self.des_thread_list[t]['cur'])
-                __dict_ = [self.queue, dump, __start_num, __limit_num, database, tablename, idx_name]
+                __dict_ = [self.queue, dump, __start_num, __limit_num, database, tablename, idx_name,pri_idx]
                 t = ThreadDump(*__dict_)
                 t.start()
                 __start_num += chunks

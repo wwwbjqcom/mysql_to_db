@@ -41,16 +41,28 @@ class Dump:
         return True
 
 
-    def dump_to_new_db(self,database,tablename,idx,start_num=None,limit_num=None):
+    def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,limit_num=None):
         start_num = start_num if start_num else 0
+        init_stat = []
         while True:
             if limit_num:
                 if limit_num >= 1000:
-                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
-                    self.__get_from_source_db_limit1000(sql=sql)
+                    if init_stat:
+                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 1,%s'.format(database, tablename,
+                                                                                           self.__join_pri_where(pri_idx),idx)
+                        self.__get_from_source_db_limit1000(sql=sql,pri_value=init_stat)
+                    else:
+                        sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
+                        self.__get_from_source_db_limit1000(sql=sql)
                 else:
-                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,limit_num)
-                    self.__get_from_source_db_list(sql=sql)
+                    if init_stat:
+                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 1,{}'.format(database, tablename,
+                                                                                    self.__join_pri_where(pri_idx), idx,
+                                                                                    limit_num)
+                        self.__get_from_source_db_list(sql=sql,pri_value=init_stat)
+                    else:
+                        sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,limit_num)
+                        self.__get_from_source_db_list(sql=sql)
             else:
                 sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,start_num)
                 self.__get_from_source_db_limit1000(sql=sql)
@@ -76,6 +88,12 @@ class Dump:
                 Logging(msg=traceback.format_list(),level='error')
                 self.__retry_(sql,all_value)
 
+            ''''''
+            _end_value = self.result[-1]
+            for idx in pri_idx.values():
+                init_stat.append(_end_value[idx])
+            ''''''
+
             if len(self.result) < 1000:
                 break
             start_num += 1000
@@ -84,6 +102,10 @@ class Dump:
                 if limit_num == 0:
                     return
 
+    def __join_pri_where(self,pri_key_info):
+        if len(pri_key_info) > 1:
+            return ' AND '.join(['`{}`>=%s'.format(col) for col in pri_key_info])
+        return '`{}`>=%s'.format(pri_key_info.keys()[0])
 
     def __retry_(self,sql,all_value):
         '''单个事务失败重试三次，如果都失败将退出整个迁移程序'''
@@ -99,17 +121,20 @@ class Dump:
             sys.exit()
 
 
-    def __get_from_source_db_list(self,sql):
+    def __get_from_source_db_list(self,sql,pri_value=None):
         try:
-            self.mysql_cur.execute(sql)
+            self.mysql_cur.execute(sql,pri_value)
             self.result = self.mysql_cur.fetchall()
         except pymysql.Error:
             Logging(msg=traceback.format_list(),level='error')
             sys.exit()
 
-    def __get_from_source_db_limit1000(self,sql):
+    def __get_from_source_db_limit1000(self,sql,pri_value=None):
         try:
-            self.mysql_cur.execute(sql,1000)
+            if pri_value:
+                self.mysql_cur.execute(sql, pri_value + [1000])
+            else:
+                self.mysql_cur.execute(sql,1000)
             self.result = self.mysql_cur.fetchall()
         except pymysql.Error:
             Logging(msg=traceback.format_list(),level='error')

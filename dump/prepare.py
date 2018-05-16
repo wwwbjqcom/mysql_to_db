@@ -31,7 +31,7 @@ class Prepare(object):
                     Logging(msg=traceback.format_exc(), level='error')
                     sys.exit()
         else:
-            for i in range(self.threads):
+            for i in range(self.threads-1):
                 conn = InitMyDB(**self.db_conn_info).Init()
                 if conn:
                     try:
@@ -43,7 +43,7 @@ class Prepare(object):
                         Logging(msg=traceback.format_exc(),level='error')
 
     def init_des_conn(self,binlog=None):
-        for i in range(self.threads):
+        for i in range(self.threads-1):
             conn = InitMyDB(**self.des_conn_info).Init()
             if conn:
                 try:
@@ -88,19 +88,36 @@ class Prepare(object):
 
 
     def check_pri(self,cur,db,table):
-        '''选取主键或第一个唯一索引作为导数据的条件'''
+        '''选取主键引作为导数据的条件'''
         sql = 'SHOW INDEX FROM {}.{}'.format(db,table)
         cur.execute(sql)
         result = cur.fetchall()
+        '''
+        pri_index_keys = [{idx['Column_name']:idx['Seq_in_index']} for idx in result if idx['Key_name'] == 'PRIMARY']
+        if pri_index_keys:
+            pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
+            return [col_name for col_name in pri_index_keys if pri_index_keys[col_name] == 1][0],pri_index_info
+        '''
         if result:
             for idx in result:
                 if idx['Key_name'] == 'PRIMARY' and idx['Seq_in_index'] == 1:
-                    return idx['Column_name']
-            else:
-                if idx['Non_unique'] == 0 and idx['Seq_in_index'] == 1:
-                    return idx['Column_name']
+                    pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
+                    return idx['Column_name'],pri_index_info
+
         Logging(msg='there is no suitable index to choose from {}.{},'.format(db,table),level='error')
         sys.exit()
+
+    def __get_pri_column_idx(self,cur,db,table):
+        '''args顺序 database、tablename'''
+        sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
+        cur.execute(sql, args=[db,table])
+        result = self.cur.fetchall()
+        pk_idex = []
+        for idex, row in enumerate(result):
+            if row['COLUMN_KEY'] == 'PRI':
+                pk_idex.append({row['COLUMN_NAME']:idex})
+
+        return pk_idex
 
     def get_tables(self,cur,db):
         sql = 'select table_name from information_schema.tables where table_schema = %s;'
