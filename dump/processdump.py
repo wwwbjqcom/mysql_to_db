@@ -57,7 +57,7 @@ class processdump(Prepare):
             self.des_mysql_cur.execute('set sql_log_bin=0')
         self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
         if retry:
-            self.conn, self.cur = self.init_conn()  # 初始化主连接
+            self.conn, self.cur = self.init_conn() # 初始化主连接
         else:
             self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
         self.dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)

@@ -38,6 +38,7 @@ class Prepare(object):
                         state = self.__init_transaction(cur=cur)
                         if state:
                             self.thread_list.append({'conn':conn,'cur':cur})
+                        return conn,cur
                     except:
                         Logging(msg=traceback.format_exc(),level='error')
 
