@@ -43,31 +43,31 @@ class Dump:
 
     def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,limit_num=None):
         start_num = start_num if start_num else 0
-        init_stat = []
+        __init_stat = []
         while True:
             if limit_num:
                 if limit_num >= 1000:
-                    if init_stat:
+                    if __init_stat:
                         sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
                                                                                            self.__join_pri_where(pri_idx),idx)
-                        self.__get_from_source_db_limit1000(sql=sql,pri_value=init_stat)
+                        self.__get_from_source_db_limit1000(sql=sql,pri_value=__init_stat)
                     else:
                         sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
                         self.__get_from_source_db_limit1000(sql=sql)
                 else:
-                    if init_stat:
+                    if __init_stat:
                         sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,{}'.format(database, tablename,
                                                                                     self.__join_pri_where(pri_idx), idx,
                                                                                     limit_num)
-                        self.__get_from_source_db_list(sql=sql,pri_value=init_stat)
+                        self.__get_from_source_db_list(sql=sql,pri_value=__init_stat)
                     else:
                         sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,limit_num)
                         self.__get_from_source_db_list(sql=sql)
             else:
-                if init_stat:
+                if __init_stat:
                     sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
                                                                                        self.__join_pri_where(pri_idx),idx)
-                    self.__get_from_source_db_limit1000(sql=sql,pri_value=init_stat)
+                    self.__get_from_source_db_limit1000(sql=sql,pri_value=__init_stat)
                 else:
                     sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,start_num)
                     self.__get_from_source_db_limit1000(sql=sql)
@@ -94,11 +94,11 @@ class Dump:
                 self.__retry_(sql,all_value)
 
             ''''''
-            init_stat = []
+            __init_stat = []
             _end_value = self.result[-1]
             for col in pri_idx:
                 _a = [v for v in col.keys()]
-                init_stat.append(_end_value[_a[0]])
+                __init_stat.append(_end_value[_a[0]])
             ''''''
 
             if len(self.result) < 1000:
