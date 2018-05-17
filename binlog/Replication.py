@@ -19,6 +19,7 @@ class ReplicationMysql:
     def __checksum_enabled(self):
         """Return True if binlog-checksum = CRC32. Only for MySQL > 5.6"""
         with self.connection.cursor() as cur:
+            cur.execute('SET SESSION wait_timeout = 2147483;')
             sql = 'SHOW GLOBAL VARIABLES LIKE "BINLOG_CHECKSUM";'
             cur.execute(sql)
             result = cur.fetchone()

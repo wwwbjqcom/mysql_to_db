@@ -32,6 +32,22 @@ class OperationDB:
         self.dhost,self.dport,self.duser,self.dpasswd = kwargs['dhost'],kwargs['dport'],kwargs['duser'],kwargs['dpasswd']                           #目标库连接相关信息
         self.binlog = kwargs['binlog']                                                                                                              #是否在目标库记录binlog的参数
 
+        self.destination_conn = None
+        self.destination_cur = None
+        self.conn = None
+
+        self.databases = kwargs['databases']
+        self.tables = kwargs['tables']
+        self.binlog_file = kwargs['binlog_file']
+        self.start_position = kwargs['start_position']
+
+        self.ithread = kwargs['ithread']
+        self.ignore_type = kwargs['ignore_type']
+        self.ignore = {'delete':binlog_events.DELETE_ROWS_EVENT,'update':binlog_events.UPDATE_ROWS_EVENT,'insert':binlog_events.WRITE_ROWS_EVENT}
+        self.server_id = kwargs['server_id']
+
+    def __init_master_slave_conn(self):
+
         '''目标库连接'''
         self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
                                          mysql_password=self.dpasswd).Init()
@@ -40,19 +56,9 @@ class OperationDB:
         if self.binlog is None:
             self.destination_cur.execute('set sql_log_bin=0;')  # 设置binlog参数
         self.destination_cur.execute('SET SESSION wait_timeout = 2147483;')
-        ''''''
 
-        self.databases = kwargs['databases']
-        self.tables = kwargs['tables']
-        self.binlog_file = kwargs['binlog_file']
-        self.start_position = kwargs['start_position']
         self.conn = InitMyDB(mysql_host=self.host, mysql_port=self.port, mysql_user=self.user,
-                              mysql_password=self.passwd, unix_socket=self.unix_socket).Init()
-
-        self.ithread = kwargs['ithread']
-        self.ignore_type = kwargs['ignore_type']
-        self.ignore = {'delete':binlog_events.DELETE_ROWS_EVENT,'update':binlog_events.UPDATE_ROWS_EVENT,'insert':binlog_events.WRITE_ROWS_EVENT}
-        self.server_id = kwargs['server_id']
+                             mysql_password=self.passwd, unix_socket=self.unix_socket).Init()
 
     def WhereJoin(self,table_struce_key):
         return ' AND '.join(['`{}`=%s'.format(col) for col in tmepdata.table_struct_list[table_struce_key]])
@@ -150,6 +156,7 @@ class OperationDB:
             if _binlog_file is None or _binlog_pos is None:
                 sys.exit()
         ''''''
+        self.__init_master_slave_conn() #初始化源库、目标库同步链接
         Logging(msg='replication to master.............', level='info')
         if self.full_dump:
             ReplConn = ReplicationMysql(log_file=_binlog_file, log_pos=_binlog_pos,mysql_connection=self.conn, server_id=self.server_id).ReadPack()
