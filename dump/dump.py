@@ -64,8 +64,13 @@ class Dump:
                         sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,limit_num)
                         self.__get_from_source_db_list(sql=sql)
             else:
-                sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,start_num)
-                self.__get_from_source_db_limit1000(sql=sql)
+                if init_stat:
+                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 1,%s'.format(database, tablename,
+                                                                                       self.__join_pri_where(pri_idx),idx)
+                    self.__get_from_source_db_limit1000(sql=sql,pri_value=init_stat)
+                else:
+                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,start_num)
+                    self.__get_from_source_db_limit1000(sql=sql)
 
             all_value = []
             if self.result:

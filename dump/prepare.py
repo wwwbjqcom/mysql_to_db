@@ -75,9 +75,11 @@ class Prepare(object):
             return None
 
     def close(self,cur,conn):
-        cur.close()
-        conn.close()
-
+        try:
+            cur.close()
+            conn.close()
+        except:
+            pass
     def get_chunks(self,cur,databases,tables):
         cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
         result = cur.fetchall()
