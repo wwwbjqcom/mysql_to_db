@@ -89,6 +89,7 @@ class Dump:
                 self.__retry_(sql,all_value)
 
             ''''''
+            init_stat = []
             _end_value = self.result[-1]
             for col in pri_idx:
                 _a = [v for v in col.keys()]
