@@ -17,6 +17,11 @@ class Prepare(object):
         self.thread_list = []           #连接列表
         self.des_thread_list = []       #目标库链接列表
     def init_conn(self,primary_t=None):
+        '''
+        初始化数据库链接，所有链接添加到链接列表
+        :param primary_t:
+        :return:
+        '''
         if primary_t:
             conn = InitMyDB(**self.db_conn_info).Init()
             if conn:
@@ -43,26 +48,42 @@ class Prepare(object):
                         Logging(msg=traceback.format_exc(),level='error')
 
     def init_des_conn(self,binlog=None):
+        '''
+        在线导出时用于初始化目标库的链接
+        默认不记录binlog，需指定--binlog参数才能记录binlog
+        session链接timeout时间为2147483
+        :param binlog:
+        :return:
+        '''
         for i in range(self.threads-1):
             conn = InitMyDB(**self.des_conn_info).Init()
             if conn:
                 try:
                     cur = conn.cursor()
                     if binlog is None:
-                        cur.execute('set sql_log_bin=0;')  # 设置binlog参数
+                        cur.execute('set sql_log_bin=0;')
                     cur.execute('SET SESSION wait_timeout = 2147483;')
                     self.des_thread_list.append({'conn': conn, 'cur': cur})
                 except:
                     Logging(msg=traceback.format_exc(), level='error')
 
     def master_info(self,cur):
-        '''获取master信息'''
+        '''
+        获取master信息
+        :param cur:
+        :return:
+        '''
         cur.execute('SHOW MASTER STATUS')
         result = cur.fetchall()
         return result[0]['File'],result[0]['Position']
 
     def __init_transaction(self,cur,primary_t=None):
-        '''初始化各连接事务级别'''
+        '''
+        初始化在线导出时源库所有链接的事务信息
+        :param cur:
+        :param primary_t:
+        :return:
+        '''
         try:
             cur.execute('SET SESSION wait_timeout = 2147483;')
             if primary_t:
@@ -81,22 +102,31 @@ class Prepare(object):
         except:
             pass
     def get_chunks(self,cur,databases,tables):
+        '''
+        获取每个线程分块大小
+        :param cur:
+        :param databases:
+        :param tables:
+        :return:
+        '''
         cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
         result = cur.fetchall()
         total_rows = result[0]['count']
         chunk = int(total_rows / len(self.thread_list))
-        #more_num =total_rows - (chunk * len(self.thread_list))
         return chunk
 
 
     def check_pri(self,cur,db,table):
-        '''选取主键引作为导数据的条件'''
-
         '''
-        pri_index_keys = [{idx['Column_name']:idx['Seq_in_index']} for idx in result if idx['Key_name'] == 'PRIMARY']
-        if pri_index_keys:
-            pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
-            return [col_name for col_name in pri_index_keys if pri_index_keys[col_name] == 1][0],pri_index_info
+        该函数获取查询数据时where条件的字段
+        首先获取表主键，如果主键有自增字段将直接使用
+        如果为组合主键且无自增字段将尝试选择单列唯一索引
+        如果上述条件都不满足将不能执行在线导出
+        因为在数据量很大的表上直接使用limit n,m的方式查询将非常耗时
+        :param cur:
+        :param db:
+        :param table:
+        :return:
         '''
         pri_name,pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
         if pri_name and pri_index_info:
@@ -143,7 +173,14 @@ class Prepare(object):
         return pk_name,pk_idex
 
     def __get_col_info(self,cur,db,table,col):
-        '''根据字段名获取字段信息'''
+        '''
+        根据字段名获取字段所在顺序，通过该index获取对应的行值
+        :param cur:
+        :param db:
+        :param table:
+        :param col:
+        :return:
+        '''
         sql = 'select ORDINAL_POSITION from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s and column_name=%s;'
         cur.execute(sql, args=[db, table, col])
         result = cur.fetchall()
@@ -153,6 +190,12 @@ class Prepare(object):
             return None
 
     def get_tables(self,cur,db):
+        '''
+        获取对应schema下的所有数据表名称
+        :param cur:
+        :param db:
+        :return:
+        '''
         sql = 'select table_name from information_schema.tables where table_schema = %s;'
         cur.execute(sql,db)
         result = cur.fetchall()

@@ -52,18 +52,27 @@ class processdump(Prepare):
         self.__init_info()
 
     def __init_info(self):
-        '''初始化主链接'''
+        '''
+        初始化数据库主链接信息
+        :return:
+        '''
         self.des_mysql_conn = InitMyDB(**self.des_kwargs).Init()
-        self.des_mysql_cur = self.des_mysql_conn.cursor()  # 目标库连接
+        self.des_mysql_cur = self.des_mysql_conn.cursor()
         self.des_thread_list.append({'conn': self.des_mysql_conn, 'cur': self.des_mysql_cur})
         if self.binlog is None:
             self.des_mysql_cur.execute('set sql_log_bin=0')
         self.des_mysql_cur.execute('SET SESSION wait_timeout = 2147483;')
-        self.conn, self.cur = self.init_conn(primary_t=True)  # 初始化主连接
+        self.conn, self.cur = self.init_conn(primary_t=True)
         self.dump = Dump(cur=self.cur, des_conn=self.des_mysql_conn, des_cur=self.des_mysql_cur)
 
 
     def start(self):
+        '''
+        所有在线导出操作将在该函数内部直接完成，直至退出并返回binlog相关信息
+        binlog信息在所有链接初始化完成后获取，因为所有链接都采用的SNAPSHOT
+        因此主链接会执行全局读锁，但非常短暂，在所有链接初始化完成将释放
+        :return:
+        '''
         binlog_file,binlog_pos = self.master_info(cur=self.cur)
         if binlog_file and binlog_pos:
             pass
@@ -73,8 +82,9 @@ class processdump(Prepare):
             Logging(msg='invalid master info , file {} position {}'.format(binlog_file,binlog_pos),level='error')
             sys.exit()
 
+        '''初始化源库、目标库所有链接'''
         if self.threads and self.threads > 1:
-            self.init_conn()    #初始化所有线程连接
+            self.init_conn()
             self.init_des_conn(binlog=self.binlog)
 
         self.cur.execute('UNLOCK TABLES')
@@ -106,7 +116,8 @@ class processdump(Prepare):
                     for table in tables:
                         _parameter = [database, table]
                         self.__dump_go(*_parameter)
-        self.close(self.cur,self.conn)
+
+        '''操作完成关闭所有数据库链接'''
         if self.threads and self.threads > 1:
             for thread in self.thread_list:
                 self.close(thread['cur'],thread['conn'])
@@ -115,6 +126,12 @@ class processdump(Prepare):
         return binlog_file,binlog_pos
 
     def __dump_go(self,database,tablename):
+        '''
+        单线程导出函数
+        :param database:
+        :param tablename:
+        :return:
+        '''
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
             idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
@@ -124,6 +141,13 @@ class processdump(Prepare):
             sys.exit()
 
     def __mul_dump_go(self,database,tablename):
+        '''
+        多线程导出函数
+        通过表总条数按线程数拆分为多个chunk
+        :param database:
+        :param tablename:
+        :return:
+        '''
         chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
@@ -132,7 +156,6 @@ class processdump(Prepare):
             __start_num = 0
             __limit_num = chunks
             for t in range(len(self.thread_list)):
-                '''多线程导出每个线程对mysql链接及基本信息'''
                 if len(self.thread_list) - t == 1:
                     __limit_num = None
                 dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
@@ -146,6 +169,10 @@ class processdump(Prepare):
             sys.exit()
 
     def __get_queue(self):
+        '''
+        获取queue中的数据个数，直到取回个数与并发线程数相等才退出
+        :return:
+        '''
         _count = len(self.thread_list)
         _tmp_count = 0
         while _tmp_count < _count:

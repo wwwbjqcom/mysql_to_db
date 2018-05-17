@@ -47,8 +47,10 @@ class OperationDB:
         self.server_id = kwargs['server_id']
 
     def __init_master_slave_conn(self):
-
-        '''目标库连接'''
+        '''
+        初始化同步所需的源库、目标库的链接
+        :return:
+        '''
         self.destination_conn = InitMyDB(mysql_host=self.dhost, mysql_port=self.dport, mysql_user=self.duser,
                                          mysql_password=self.dpasswd).Init()
 
@@ -148,20 +150,36 @@ class OperationDB:
                 self.GetSQL(_values=_values, event_code=event_code)
 
     def Operation(self):
+        '''
+        :return:
+        '''
+
         '''全量导出入口'''
         if self.full_dump:
-            des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,'mysql_password':self.dpasswd}
-            src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,'mysql_password':self.passwd,'unix_socket':self.unix_socket}
-            _binlog_file,_binlog_pos = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,src_kwargs=src_mysql_info,des_kwargs=des_mysql_info,binlog=self.binlog).start()
+            des_mysql_info = {'mysql_host':self.dhost,'mysql_port':self.dport,'mysql_user':self.duser,
+                              'mysql_password':self.dpasswd}
+            src_mysql_info = {'mysql_host':self.host,'mysql_port':self.port,'mysql_user':self.user,
+                              'mysql_password':self.passwd,'unix_socket':self.unix_socket}
+            _binlog_file,_binlog_pos = processdump(threads=self.threads,dbs=self.databases,tables=self.tables,
+                                                   src_kwargs=src_mysql_info,des_kwargs=des_mysql_info,binlog=self.binlog).start()
             if _binlog_file is None or _binlog_pos is None:
                 sys.exit()
-        ''''''
+        '''============================================================================================================'''
+
+        '''
+        在源库利用replication协议建立主从链接
+        如有全量导出使用导出开始时记录的binlog信息，不然使用传入参数的值
+        '''
         self.__init_master_slave_conn() #初始化源库、目标库同步链接
         Logging(msg='replication to master.............', level='info')
         if self.full_dump:
-            ReplConn = ReplicationMysql(log_file=_binlog_file, log_pos=_binlog_pos,mysql_connection=self.conn, server_id=self.server_id).ReadPack()
+            ReplConn = ReplicationMysql(log_file=_binlog_file, log_pos=_binlog_pos,mysql_connection=self.conn,
+                                        server_id=self.server_id).ReadPack()
         else:
-            ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn,server_id=self.server_id).ReadPack()
+            ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,
+                                        mysql_connection=self.conn,server_id=self.server_id).ReadPack()
+        '''============================================================================================================'''
+
         table_struce_key = None
         next_pos = None
         binlog_file_name = _binlog_file if self.full_dump else self.binlog_file
@@ -172,6 +190,14 @@ class OperationDB:
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
             at_pos = _binlog_pos if self.full_dump else self.start_position
+
+            '''
+            开始循环获取binlog
+            仅对row_event、table_map_event、gtid_log_event、rotate_event、query_event
+            row_event: 获取行数据
+            table_map_event: 获取数据库名、表明、字段信息
+            gtid_log_event、rotate_event、query_event：获取binlog基本信息记录与dump2db中
+            '''
             while 1:
                 try:
                     pkt = ReplConn._read_packet()
@@ -180,6 +206,9 @@ class OperationDB:
                     if event_code is None:
                         continue
                     if event_code in (binlog_events.WRITE_ROWS_EVENT,binlog_events.UPDATE_ROWS_EVENT,binlog_events.DELETE_ROWS_EVENT):
+                        '''
+                        对过滤的thread_id，type进行判断
+                        '''
                         if self.ithread:
                             if self.ithread == tmepdata.thread_id:
                                 continue
@@ -232,8 +261,6 @@ class OperationDB:
                 else:
                     _mysql_conn.SaveStatus(logname=binlog_file_name,at_pos=at_pos,next_pos=next_pos,server_id=self.server_id)
 
-                #_mysql_conn.SaveStatus(logname=binlog_file_name, at_pos=at_pos, next_pos=next_pos,
-                #                      server_id=self.server_id)
                 at_pos = next_pos
         else:
             Logging(msg='replication failed................', level='error')

@@ -17,6 +17,14 @@ class Dump:
         self.result = None
 
     def prepare_structe(self,database,tablename):
+        '''
+        在目标库准备对于的数据库、表结构
+        目标库的数据表如果存在将直接删除
+        如果目标表有数据需要注意是否可以直接删除
+        :param database:
+        :param tablename:
+        :return:
+        '''
         try:
             self.des_mysql_cur.execute('CREATE DATABASE IF NOT EXISTS {}'.format(database))
         except pymysql.Warning:
@@ -45,33 +53,46 @@ class Dump:
         start_num = start_num if start_num else 0
         __init_stat = []
         while True:
-            if limit_num:
-                if limit_num >= 1000:
-                    if __init_stat:
-                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
-                                                                                           self.__join_pri_where(pri_idx),idx)
-                        self.__get_from_source_db_limit1000(sql=sql,pri_value=__init_stat)
-                    else:
-                        sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
-                        self.__get_from_source_db_limit1000(sql=sql)
-                else:
-                    if __init_stat:
-                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,{}'.format(database, tablename,
-                                                                                    self.__join_pri_where(pri_idx), idx,
-                                                                                    limit_num)
-                        self.__get_from_source_db_list(sql=sql,pri_value=__init_stat)
-                    else:
-                        sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,limit_num)
-                        self.__get_from_source_db_list(sql=sql)
-            else:
-                if __init_stat:
+            '''
+            第一次使用分块大小limit N,M, N代表起始个数位置（chunks大小），M代表条数
+            第一次执行之后获取最大主键或唯一索引值范围查找
+            每个线程查询一次累加条数当剩余条数小于1000时调用__get_from_source_db_list
+            每个chunk剩余条数大于1000固定调用__get_from_source_db_limit1000
+            '''
+            if __init_stat:
+                if limit_num and limit_num>=1000:
                     sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
-                                                                                       self.__join_pri_where(pri_idx),idx)
-                    self.__get_from_source_db_limit1000(sql=sql,pri_value=__init_stat)
+                                                                                       self.__join_pri_where(pri_idx),
+                                                                                       idx)
+                    self.__get_from_source_db_limit1000(sql=sql, pri_value=__init_stat)
+                elif limit_num and limit_num < 1000:
+                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,{}'.format(database, tablename,
+                                                                                       self.__join_pri_where(pri_idx),
+                                                                                       idx,
+                                                                                       limit_num)
+                    self.__get_from_source_db_list(sql=sql, pri_value=__init_stat)
                 else:
-                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database,tablename,idx,start_num)
+                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
+                                                                                       self.__join_pri_where(pri_idx),
+                                                                                       idx)
+                    self.__get_from_source_db_limit1000(sql=sql, pri_value=__init_stat)
+            else:
+                if limit_num and limit_num >= 1000:
+                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
                     self.__get_from_source_db_limit1000(sql=sql)
+                elif limit_num and limit_num < 1000:
+                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,
+                                                                               limit_num)
+                    self.__get_from_source_db_list(sql=sql)
+                else:
+                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
+                    self.__get_from_source_db_limit1000(sql=sql)
+            '''======================================================================================================'''
 
+            '''
+            拼接1000行数据为pymysql格式化列表
+            如果返回数据为空直接退出
+            '''
             all_value = []
             if self.result:
                 _len = len(self.result[0])
@@ -93,21 +114,27 @@ class Dump:
                 Logging(msg=traceback.format_list(),level='error')
                 self.__retry_(sql,all_value)
 
-            ''''''
+            '''
+            获取每次获取数据的最大主键或唯一索引值
+            '''
             __init_stat = []
             _end_value = self.result[-1]
             for col in pri_idx:
                 _a = [v for v in col.keys()]
                 __init_stat.append(_end_value[_a[0]])
-            ''''''
+            '''========================================='''
 
+            '''
+            每次循环结束计算该线程还剩未处理的条数（limit_num）
+            当返回条数少于1000条时将退出整个循环
+            '''
             if len(self.result) < 1000:
                 break
-            start_num += 1000
             if limit_num:
                 limit_num = limit_num - 1000
                 if limit_num == 0:
                     return
+            '''=========================================='''
 
     def __join_pri_where(self,pri_key_info):
         '''
