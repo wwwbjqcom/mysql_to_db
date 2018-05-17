@@ -91,7 +91,8 @@ class Dump:
             ''''''
             _end_value = self.result[-1]
             for col in pri_idx:
-                init_stat.append(_end_value[col.values()[0]])
+                _a = [v for v in col.keys()]
+                init_stat.append(_end_value[_a[0]])
             ''''''
 
             if len(self.result) < 1000:
@@ -104,8 +105,10 @@ class Dump:
 
     def __join_pri_where(self,pri_key_info):
         if len(pri_key_info) > 1:
-            return ' AND '.join(['`{}`>=%s'.format(col.keys()[0]) for col in pri_key_info])
-        return '`{}`>=%s'.format(pri_key_info[0].keys()[0])
+            _keys = [[_k for _k in col.keys()] for col in pri_key_info]
+            return ' AND '.join(['`{}`>=%s'.format(k[0]) for k in _keys])
+        _keys = [[_k for _k in col.keys()] for col in pri_key_info]
+        return '`{}`>=%s'.format(_keys[0][0])
 
     def __retry_(self,sql,all_value):
         '''单个事务失败重试三次，如果都失败将退出整个迁移程序'''

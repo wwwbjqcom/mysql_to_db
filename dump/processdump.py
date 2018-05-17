@@ -117,7 +117,7 @@ class processdump(Prepare):
     def __dump_go(self,database,tablename):
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
-            idx_name, = self.check_pri(cur=self.cur, db=database, table=tablename)
+            idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
             self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name,pri_idx=pri_idx)
         else:
             Logging(msg='Initialization structure error', level='error')
