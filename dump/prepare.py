@@ -133,14 +133,14 @@ class Prepare(object):
             '''如有自增列直接返回自增列'''
             if row['EXTRA'] == 'auto_increment':
                 pk_idex.append({row['COLUMN_NAME']: idex})
-                return pk_idex,row['COLUMN_NAME']
+                return row['COLUMN_NAME'],pk_idex
             if row['COLUMN_KEY'] == 'PRI':
                 pk_idex.append({row['COLUMN_NAME']:idex})
                 pk_name = row['COLUMN_NAME']
         if len(pk_idex) > 1:
             '''如果为复合主键且无自增列将返回空'''
             return None,None
-        return pk_idex,pk_name
+        return pk_name,pk_idex
 
     def __get_col_info(self,cur,db,table,col):
         '''根据字段名获取字段信息'''
