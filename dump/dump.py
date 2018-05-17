@@ -110,9 +110,11 @@ class Dump:
                     return
 
     def __join_pri_where(self,pri_key_info):
+        '''
         if len(pri_key_info) > 1:
             _keys = [[_k for _k in col.keys()] for col in pri_key_info]
             return ' AND '.join(['`{}`>=%s'.format(k[0]) for k in _keys])
+        '''
         _keys = [[_k for _k in col.keys()] for col in pri_key_info]
         return '`{}`>=%s'.format(_keys[0][0])
 

@@ -91,35 +91,66 @@ class Prepare(object):
 
     def check_pri(self,cur,db,table):
         '''选取主键引作为导数据的条件'''
-        sql = 'SHOW INDEX FROM {}.{}'.format(db,table)
-        cur.execute(sql)
-        result = cur.fetchall()
+
         '''
         pri_index_keys = [{idx['Column_name']:idx['Seq_in_index']} for idx in result if idx['Key_name'] == 'PRIMARY']
         if pri_index_keys:
             pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
             return [col_name for col_name in pri_index_keys if pri_index_keys[col_name] == 1][0],pri_index_info
         '''
+        pri_name,pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
+        if pri_name and pri_index_info:
+            return pri_name,pri_index_info
+
+        sql = 'SHOW INDEX FROM {}.{}'.format(db, table)
+        cur.execute(sql)
+        result = cur.fetchall()
+        _tmp_key_info = {}
         if result:
             for idx in result:
-                if idx['Key_name'] == 'PRIMARY' and idx['Seq_in_index'] == 1:
-                    pri_index_info = self.__get_pri_column_idx(cur=cur,db=db,table=table)
-                    return idx['Column_name'],pri_index_info
+                if idx['Non_unique'] == 0 and idx['Key_name'] != 'PRIMARY':
+                    if idx['Key_name'] in _tmp_key_info:
+                        _tmp_key_info['Key_name'] += [idx['Column_name']]
+                    else:
+                        _tmp_key_info['Key_name'] = [idx['Column_name']]
+
+            uni_col_name = [_tmp_key_info[idx_name] for idx_name in _tmp_key_info if len(_tmp_key_info[idx_name]) == 1][0][0]
+            uni_key_info = self.__get_col_info(cur=cur,db=db,table=table,col=uni_col_name)
+            if uni_key_info:
+                return uni_col_name,uni_key_info
 
         Logging(msg='there is no suitable index to choose from {}.{},'.format(db,table),level='error')
         sys.exit()
 
     def __get_pri_column_idx(self,cur,db,table):
         '''args顺序 database、tablename'''
-        sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
+        sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE,EXTRA from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
         cur.execute(sql, args=[db,table])
-        result = self.cur.fetchall()
+        result = cur.fetchall()
         pk_idex = []
+        pk_name = None
         for idex, row in enumerate(result):
+            '''如有自增列直接返回自增列'''
+            if row['EXTRA'] == 'auto_increment':
+                pk_idex.append({row['COLUMN_NAME']: idex})
+                return pk_idex,row['COLUMN_NAME']
             if row['COLUMN_KEY'] == 'PRI':
                 pk_idex.append({row['COLUMN_NAME']:idex})
+                pk_name = row['COLUMN_NAME']
+        if len(pk_idex) > 1:
+            '''如果为复合主键且无自增列将返回空'''
+            return None,None
+        return pk_idex,pk_name
 
-        return pk_idex
+    def __get_col_info(self,cur,db,table,col):
+        '''根据字段名获取字段信息'''
+        sql = 'select ORDINAL_POSITION from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s and column_name=%s;'
+        cur.execute(sql, args=[db, table, col])
+        result = cur.fetchall()
+        if result:
+            return [{col:result[0]['ORDINAL_POSITION']}]
+        else:
+            return None
 
     def get_tables(self,cur,db):
         sql = 'select table_name from information_schema.tables where table_schema = %s;'
