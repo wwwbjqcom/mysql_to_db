@@ -48,7 +48,7 @@ class Dump:
             if limit_num:
                 if limit_num >= 1000:
                     if init_stat:
-                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 1,%s'.format(database, tablename,
+                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
                                                                                            self.__join_pri_where(pri_idx),idx)
                         self.__get_from_source_db_limit1000(sql=sql,pri_value=init_stat)
                     else:
@@ -56,7 +56,7 @@ class Dump:
                         self.__get_from_source_db_limit1000(sql=sql)
                 else:
                     if init_stat:
-                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 1,{}'.format(database, tablename,
+                        sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,{}'.format(database, tablename,
                                                                                     self.__join_pri_where(pri_idx), idx,
                                                                                     limit_num)
                         self.__get_from_source_db_list(sql=sql,pri_value=init_stat)
@@ -65,7 +65,7 @@ class Dump:
                         self.__get_from_source_db_list(sql=sql)
             else:
                 if init_stat:
-                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 1,%s'.format(database, tablename,
+                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
                                                                                        self.__join_pri_where(pri_idx),idx)
                     self.__get_from_source_db_limit1000(sql=sql,pri_value=init_stat)
                 else:
@@ -116,7 +116,7 @@ class Dump:
             return ' AND '.join(['`{}`>=%s'.format(k[0]) for k in _keys])
         '''
         _keys = [[_k for _k in col.keys()] for col in pri_key_info]
-        return '`{}`>=%s'.format(_keys[0][0])
+        return '`{}`>%s'.format(_keys[0][0])
 
     def __retry_(self,sql,all_value):
         '''单个事务失败重试三次，如果都失败将退出整个迁移程序'''
