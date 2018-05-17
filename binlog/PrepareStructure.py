@@ -37,9 +37,10 @@ class GetStruct:
     def SaveStatus(self,logname,at_pos,next_pos,server_id,gtid=None):
         if gtid:
             sql = 'INSERT INTO dump2db.dump_status(id,exe_gtid,logname,at_pos,next_pos) VALUES(%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE exe_gtid=%s,logname=%s,at_pos=%s,next_pos=%s;'
+            self.cur.execute(sql, (server_id, gtid, logname, at_pos, next_pos, gtid, logname, at_pos, next_pos))
         else:
             sql = 'INSERT INTO dump2db.dump_status(id,logname,at_pos,next_pos) VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE logname=%s,at_pos=%s,next_pos=%s;'
-        self.cur.execute(sql,(server_id,logname,at_pos,next_pos,logname,at_pos,next_pos))
+            self.cur.execute(sql,(server_id,logname,at_pos,next_pos,logname,at_pos,next_pos))
         self.connection.commit()
 
     def close(self):

@@ -213,12 +213,16 @@ class OperationDB:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()
                     break
+                '''
                 if _gtid and _gtid != tmepdata.gtid:
                     _mysql_conn.SaveStatus(logname=binlog_file_name, at_pos=at_pos, next_pos=next_pos,
                                            server_id=self.server_id,gtid=_gtid)
                     tmepdata.gtid=_gtid
                 else:
                     _mysql_conn.SaveStatus(logname=binlog_file_name,at_pos=at_pos,next_pos=next_pos,server_id=self.server_id)
+                '''
+                _mysql_conn.SaveStatus(logname=binlog_file_name, at_pos=at_pos, next_pos=next_pos,
+                                       server_id=self.server_id)
                 at_pos = next_pos
         else:
             Logging(msg='replication failed................', level='error')
