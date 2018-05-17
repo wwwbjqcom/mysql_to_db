@@ -5,6 +5,7 @@
 import datetime
 import struct
 import sys
+import binascii
 sys.path.append("..")
 from binlog import Metadata,ReadPacket
 
@@ -188,8 +189,8 @@ class ParseEvent(ReadPacket.Read):
         '''
         self.read_bytes(1)
         uuid = self.read_bytes(16)
-        gtid = "%s%s%s%s-%s%s-%s%s-%s%s-%s%s%s%s%s%s" % \
-               tuple("{0:02x}".format(ord(c)) for c in uuid)
+        nibbles = binascii.hexlify(uuid).decode('ascii')
+        gtid = '%s-%s-%s-%s-%s' % (nibbles[:8], nibbles[8:12], nibbles[12:16], nibbles[16:20], nibbles[20:])
         gno_id = self.read_uint64()
         gtid += ":{}".format(gno_id)
         if self.packet is None:
