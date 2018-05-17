@@ -167,7 +167,7 @@ class Prepare(object):
                     _tmp_pk_info[row['COLUMN_KEY']] = [row['COLUMN_NAME'],idex]
 
         for column_key in _tmp_pk_info:
-            if len(_tmp_pk_info[column_key]) == 1:
+            if len(_tmp_pk_info[column_key]) == 2:
                 pk_col_name = _tmp_pk_info[column_key][0]
                 pk_key_info = [{_tmp_pk_info[column_key][0]:_tmp_pk_info[column_key][1]}]
                 return pk_col_name,pk_key_info
