@@ -120,9 +120,10 @@ class Prepare(object):
         '''
         该函数获取查询数据时where条件的字段
         首先获取表主键，如果主键有自增字段将直接使用
-        如果为组合主键且无自增字段将尝试选择单列唯一索引
-        如果上述条件都不满足将不能执行在线导出
-        因为在数据量很大的表上直接使用limit n,m的方式查询将非常耗时
+        如果主键为复合主键将不使用主键字段，尝试获取一个单列唯一索引
+        因为复合主键或唯一索引，判断基础都为字段组合唯一
+        这种情况下很难作为条件范围取值，自增也不例外
+        所以在线导出必须要有单列主键或单列唯一索引
         :param cur:
         :param db:
         :param table:
@@ -157,20 +158,21 @@ class Prepare(object):
         sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE,EXTRA from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
         cur.execute(sql, args=[db,table])
         result = cur.fetchall()
-        pk_idex = []
-        pk_name = None
+        _tmp_pk_info = {}
         for idex, row in enumerate(result):
-            '''如有自增列直接返回自增列'''
-            if row['EXTRA'] == 'auto_increment':
-                pk_idex.append({row['COLUMN_NAME']: idex})
-                return row['COLUMN_NAME'],pk_idex
             if row['COLUMN_KEY'] == 'PRI':
-                pk_idex.append({row['COLUMN_NAME']:idex})
-                pk_name = row['COLUMN_NAME']
-        if len(pk_idex) > 1:
-            '''如果为复合主键且无自增列将返回空'''
-            return None,None
-        return pk_name,pk_idex
+                if row['COLUMN_NAME'] in _tmp_pk_info:
+                    _tmp_pk_info[row['COLUMN_KEY']] += [row['COLUMN_NAME'],idex]
+                else:
+                    _tmp_pk_info[row['COLUMN_KEY']] = [row['COLUMN_NAME'],idex]
+
+        for column_key in _tmp_pk_info:
+            if len(_tmp_pk_info[column_key]) == 1:
+                pk_col_name = _tmp_pk_info[column_key][0]
+                pk_key_info = [{_tmp_pk_info[column_key][0]:_tmp_pk_info[column_key][1]}]
+                return pk_col_name,pk_key_info
+
+        return None,None
 
     def __get_col_info(self,cur,db,table,col):
         '''
