@@ -157,14 +157,14 @@ class OperationDB:
             ReplConn = ReplicationMysql(log_file=self.binlog_file, log_pos=self.start_position,mysql_connection=self.conn,server_id=self.server_id).ReadPack()
         table_struce_key = None
         next_pos = None
-        binlog_file_name = self.binlog_file
+        binlog_file_name = _binlog_file if self.full_dump else self.binlog_file
 
         _mysql_conn = GetStruct(host=self.host, port=self.port,user=self.user,passwd=self.passwd)
         _mysql_conn.CreateTmp()
         _gtid = None
         if ReplConn:
             Logging(msg='replication succeed................', level='info')
-            at_pos = self.start_position
+            at_pos = _binlog_pos if self.full_dump else self.start_position
             while 1:
                 try:
                     pkt = ReplConn._read_packet()
@@ -209,6 +209,7 @@ class OperationDB:
                             tmepdata.thread_id,_,_ = _parse_event.read_query_event(event_length=event_length)
                     elif event_code == binlog_events.GTID_LOG_EVENT:
                         _gtid = _parse_event.read_gtid_event(event_length=event_length)
+                        print(_gtid)
                 except:
                     Logging(msg=traceback.format_exc(),level='error')
                     ReplConn.close()
