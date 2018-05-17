@@ -150,7 +150,9 @@ class Dump:
         retry_num = 0
         while retry_num < 3:
             try:
+                Logging(msg='retry ...............',level='warning')
                 self.des_mysql_cur.execute(sql,all_value)
+                self.des_mysql_conn.commit()
                 break
             except pymysql.Error:
                 Logging(msg=traceback.format_list(), level='error')
