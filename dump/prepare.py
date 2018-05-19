@@ -114,7 +114,7 @@ class Prepare(object):
         result = cur.fetchall()
         total_rows = len(result)
         if total_rows < len(self.thread_list):
-            cur.execute('select min({}),max({}) from {}.{}'.format(index_name, index_name, databases, tables))
+            cur.execute('select min({}) as min,max({}) as max from {}.{}'.format(index_name, index_name, databases, tables))
             re_min_max = cur.fetchall()
             min = re_min_max[0]['min']
             max = re_min_max[0]['max']
@@ -143,7 +143,7 @@ class Prepare(object):
         return chunks_list,True
 
     def get_max_min(self,cur,databases,tables,index_name):
-        cur.execute('select min({}),max({}) from {}.{}'.format(index_name, index_name, databases, tables))
+        cur.execute('select min({}) as min,max({}) as max from {}.{}'.format(index_name, index_name, databases, tables))
         re_min_max = cur.fetchall()
         min = re_min_max[0]['min']
         max = re_min_max[0]['max']
