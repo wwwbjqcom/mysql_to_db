@@ -134,7 +134,7 @@ class Prepare(object):
             start += chunk
             end += chunk
             if _tmp:
-               a = [v for v in a if a != _tmp]
+               a = [v for v in a if v != _tmp]
             if end > total_rows:
                 chunks_list.append([a[0],result_value[-1]])
             else:
