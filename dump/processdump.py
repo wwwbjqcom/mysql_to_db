@@ -125,7 +125,7 @@ class processdump(Prepare):
                 self.close(thread['cur'], thread['conn'])
         return binlog_file,binlog_pos
 
-    def __dump_go(self,database,tablename,idx_name=None,pri_idx=None):
+    def __dump_go(self,database,tablename,idx_name=None,pri_idx=None,max_min=None):
         '''
         单线程导出函数
         :param database:
@@ -136,7 +136,9 @@ class processdump(Prepare):
         if stat:
             if idx_name is None and pri_idx is None:
                 idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
-            self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name,pri_idx=pri_idx)
+                max_min = self.get_max_min(cur=self.cur,database=database,tables=tablename,index_name=idx_name)
+            self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name, pri_idx=pri_idx,
+                                         start_num=max_min[0],end_num=max_min[1])
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
@@ -159,15 +161,15 @@ class processdump(Prepare):
                     dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
                                 des_cur=self.des_thread_list[t]['cur'])
                     __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx]
-                    t = ThreadDump(*__dict_)
-                    t.start()
+                    _t = ThreadDump(*__dict_)
+                    _t.start()
             else:
                 Logging(msg='Initialization structure error', level='error')
                 sys.exit()
 
         else:
             '''单线程'''
-            self.__dump_go(database,tablename,idx_name,pri_idx)
+            self.__dump_go(database,tablename,idx_name,pri_idx,chunks_list)
 
     def __get_queue(self):
         '''

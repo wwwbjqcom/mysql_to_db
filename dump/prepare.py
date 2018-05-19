@@ -110,17 +110,16 @@ class Prepare(object):
         :param tables:
         :return:
         '''
-        cur.execute('select {} as count from {}.{}'.format(index_name,databases,tables))
+        cur.execute('select {} from {}.{}'.format(index_name,databases,tables))
         result = cur.fetchall()
         total_rows = len(result)
         if total_rows < len(self.thread_list):
-            return total_rows,'signle'
-        '''
-        cur.execute('select min({}),max({}) from {}.{}'.format(index_name,index_name,databases,tables))
-        re_min_max = cur.fetchall()
-        min = re_min_max[0]['min']
-        max = re_min_max[0]['max']
-        '''
+            cur.execute('select min({}),max({}) from {}.{}'.format(index_name, index_name, databases, tables))
+            re_min_max = cur.fetchall()
+            min = re_min_max[0]['min']
+            max = re_min_max[0]['max']
+            return [min,max],None
+
         chunk = int(total_rows/len(self.thread_list))
 
         result_value = [row[index_name] for row in result]
@@ -141,8 +140,14 @@ class Prepare(object):
             else:
                 chunks_list.append([a[0],a[-1]])
             _tmp = a[-1]
-        return chunks_list,None
+        return chunks_list,True
 
+    def get_max_min(self,cur,databases,tables,index_name):
+        cur.execute('select min({}),max({}) from {}.{}'.format(index_name, index_name, databases, tables))
+        re_min_max = cur.fetchall()
+        min = re_min_max[0]['min']
+        max = re_min_max[0]['max']
+        return [min, max]
 
     def check_pri(self,cur,db,table):
         '''
