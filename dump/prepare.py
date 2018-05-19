@@ -200,6 +200,17 @@ class Prepare(object):
                     return row['COLUMN_NAME'],[{row['COLUMN_NAME']:idex}]
         return None,None
 
+    def check_byte_col(self,cur,db,table):
+        '''返回二进制类型字段的index'''
+        sql = 'select COLUMN_NAME,COLUMN_TYPE from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION; '
+        cur.execute(sql,args=[db,table])
+        result = cur.fetchall()
+        col_list=[]
+        for idex,row in enumerate(result):
+            if 'blob' in row['COLUMN_TYPE'] or 'set' in row['COLUMN_TYPE'] or 'binary' in row['COLUMN_TYPE']:
+                col_list.append(idex)
+        return col_list
+
     def __get_col_info(self,cur,db,table,col):
         '''
         根据字段名获取字段所在顺序，通过该index获取对应的行值

@@ -49,7 +49,7 @@ class Dump:
         return True
 
 
-    def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,end_num=None):
+    def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,end_num=None,bytes_col_list=None):
         __init_stat = []
         while True:
             '''
@@ -78,6 +78,9 @@ class Dump:
                 _len = len(self.result[0])
                 _num = len(self.result)
                 for row in self.result:
+                    if bytes_col_list:
+                        for __i in bytes_col_list:
+                            row[__i] = pymysql.Binary(row[__i])
                     all_value += row.values()
             else:
                 Logging(msg='return value is empty',level='warning')

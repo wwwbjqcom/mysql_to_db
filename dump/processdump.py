@@ -14,7 +14,7 @@ from lib.InitDB import InitMyDB
 
 
 class ThreadDump(threading.Thread):
-    def __init__(self, queue, dump_pro,chunk_range,database,table,idx,pri_idx):
+    def __init__(self, queue, dump_pro,chunk_range,database,table,idx,pri_idx,bytes_col_list):
         threading.Thread.__init__(self)
         self.queue = queue
         self.dump_pro = dump_pro
@@ -24,9 +24,10 @@ class ThreadDump(threading.Thread):
         self.table = table
         self.idx = idx
         self.pri_idx = pri_idx
+        self.bytes_col_list = bytes_col_list
     def run(self):
         try:
-            __tuple_ = [self.database,self.table,self.idx,self.pri_idx,self.start_num,self.end_num]
+            __tuple_ = [self.database,self.table,self.idx,self.pri_idx,self.start_num,self.end_num,self.bytes_col_list]
             self.dump_pro.dump_to_new_db(*__tuple_)
             self.queue.put('1001')
         except:
@@ -125,7 +126,7 @@ class processdump(Prepare):
                 self.close(thread['cur'], thread['conn'])
         return binlog_file,binlog_pos
 
-    def __dump_go(self,database,tablename,idx_name=None,pri_idx=None,max_min=None):
+    def __dump_go(self,database,tablename,idx_name=None,pri_idx=None,max_min=None,bytes_col_list=None):
         '''
         单线程导出函数
         :param database:
@@ -136,9 +137,10 @@ class processdump(Prepare):
         if stat:
             if idx_name is None and pri_idx is None:
                 idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
+                bytes_col_list = self.check_byte_col(cur=self.cur, db=database, table=tablename)
                 max_min = self.get_max_min(cur=self.cur,database=database,tables=tablename,index_name=idx_name)
             self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name, pri_idx=pri_idx,
-                                         start_num=max_min[0],end_num=max_min[1])
+                                         start_num=max_min[0],end_num=max_min[1],bytes_col_list=bytes_col_list)
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
@@ -154,6 +156,7 @@ class processdump(Prepare):
         idx_name, pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
 
         chunks_list,uli = self.get_chunks(cur=self.cur, databases=database, tables=tablename,index_name=idx_name)
+        bytes_col_list = self.check_byte_col(cur=self.cur,db=database,table=tablename)
         if chunks_list is None:
             return None
         if uli:
@@ -162,7 +165,7 @@ class processdump(Prepare):
                 for t in range(len(self.thread_list)):
                     dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
                                 des_cur=self.des_thread_list[t]['cur'])
-                    __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx]
+                    __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx,bytes_col_list]
                     _t = ThreadDump(*__dict_)
                     _t.start()
             else:
@@ -171,7 +174,7 @@ class processdump(Prepare):
 
         else:
             '''单线程'''
-            self.__dump_go(database,tablename,idx_name,pri_idx,chunks_list)
+            self.__dump_go(database,tablename,idx_name,pri_idx,chunks_list,bytes_col_list)
 
     def __get_queue(self):
         '''
