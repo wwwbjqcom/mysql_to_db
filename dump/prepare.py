@@ -110,7 +110,7 @@ class Prepare(object):
         :param tables:
         :return:
         '''
-        cur.execute('select {} from {}.{}'.format(index_name,databases,tables))
+        cur.execute('select {} from {}.{} order by {}'.format(index_name,databases,tables,index_name))
         result = cur.fetchall()
         total_rows = len(result)
         if total_rows == 0:
