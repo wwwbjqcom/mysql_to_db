@@ -78,9 +78,11 @@ class Dump:
                 _len = len(self.result[0])
                 _num = len(self.result)
                 for row in self.result:
+                    value = [v for v in row.values()]
                     if bytes_col_list:
                         for __i in bytes_col_list:
-                            row[__i] = pymysql.Binary(row[__i])
+                            if len(value[__i]) > 0:
+                                row[__i] = pymysql.Binary(row[__i])
                     all_value += row.values()
             else:
                 Logging(msg='return value is empty',level='warning')
