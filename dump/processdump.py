@@ -154,6 +154,8 @@ class processdump(Prepare):
         idx_name, pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
 
         chunks_list,uli = self.get_chunks(cur=self.cur, databases=database, tables=tablename,index_name=idx_name)
+        if chunks_list is None:
+            return None
         if uli:
             '''多线程'''
             if self.dump.prepare_structe(database=database, tablename=tablename):

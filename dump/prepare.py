@@ -113,6 +113,8 @@ class Prepare(object):
         cur.execute('select {} from {}.{}'.format(index_name,databases,tables))
         result = cur.fetchall()
         total_rows = len(result)
+        if total_rows == 0:
+            return  None,None
         if total_rows < len(self.thread_list):
             cur.execute('select min({}) as min,max({}) as max from {}.{}'.format(index_name, index_name, databases, tables))
             re_min_max = cur.fetchall()
@@ -194,7 +196,7 @@ class Prepare(object):
         result = cur.fetchall()
         for idex, row in enumerate(result):
             if row['COLUMN_KEY'] == 'PRI':
-                if row['EXTRA'] == 'auto_incremet':
+                if row['EXTRA'] == 'auto_increment':
                     return row['COLUMN_NAME'],[{row['COLUMN_NAME']:idex}]
         return None,None
 
