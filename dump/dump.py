@@ -110,10 +110,6 @@ class Dump:
             '''
             if len(self.result) < 1000:
                 break
-            if limit_num:
-                limit_num = limit_num - 1000
-                if limit_num == 0:
-                    return
             '''=========================================='''
 
     def __join_pri_where(self,pri_key_info):
