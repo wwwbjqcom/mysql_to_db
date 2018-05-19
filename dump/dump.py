@@ -49,8 +49,7 @@ class Dump:
         return True
 
 
-    def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,limit_num=None):
-        start_num = start_num if start_num else 0
+    def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,end_num=None):
         __init_stat = []
         while True:
             '''
@@ -59,34 +58,15 @@ class Dump:
             每个线程查询一次累加条数当剩余条数小于1000时调用__get_from_source_db_list
             每个chunk剩余条数大于1000固定调用__get_from_source_db_limit1000
             '''
+
             if __init_stat:
-                if limit_num and limit_num>=1000:
-                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
-                                                                                       self.__join_pri_where(pri_idx),
-                                                                                       idx)
-                    self.__get_from_source_db_limit1000(sql=sql, pri_value=__init_stat)
-                elif limit_num and limit_num < 1000:
-                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,{}'.format(database, tablename,
-                                                                                       self.__join_pri_where(pri_idx),
-                                                                                       idx,
-                                                                                       limit_num)
-                    self.__get_from_source_db_list(sql=sql, pri_value=__init_stat)
-                else:
-                    sql = 'SELECT * FROM {}.{} WHERE {} ORDER BY {} LIMIT 0,%s'.format(database, tablename,
-                                                                                       self.__join_pri_where(pri_idx),
-                                                                                       idx)
-                    self.__get_from_source_db_limit1000(sql=sql, pri_value=__init_stat)
+                sql = 'SELECT * FROM {}.{} WHERE {}>%s and {}<=%s ORDER BY {} LIMIT %s'.format(database, tablename,
+                                                                                                idx, idx, idx)
+                self.__get_from_source_db_limit1000(sql=sql, args_value=[__init_stat[0], end_num])
             else:
-                if limit_num and limit_num >= 1000:
-                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
-                    self.__get_from_source_db_limit1000(sql=sql)
-                elif limit_num and limit_num < 1000:
-                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},{}'.format(database, tablename, idx, start_num,
-                                                                               limit_num)
-                    self.__get_from_source_db_list(sql=sql)
-                else:
-                    sql = 'SELECT * FROM {}.{} ORDER BY {} LIMIT {},%s'.format(database, tablename, idx, start_num)
-                    self.__get_from_source_db_limit1000(sql=sql)
+                sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT %s'.format(database, tablename,
+                                                                                                idx, idx, idx)
+                self.__get_from_source_db_limit1000(sql=sql,args_value=[start_num,end_num])
             '''======================================================================================================'''
 
             '''
@@ -169,10 +149,10 @@ class Dump:
             Logging(msg=traceback.format_list(),level='error')
             sys.exit()
 
-    def __get_from_source_db_limit1000(self,sql,pri_value=None):
+    def __get_from_source_db_limit1000(self,sql,args_value):
         try:
-            if pri_value:
-                self.mysql_cur.execute(sql, pri_value + [1000])
+            if args_value:
+                self.mysql_cur.execute(sql, args_value + [1000])
             else:
                 self.mysql_cur.execute(sql,1000)
             self.result = self.mysql_cur.fetchall()

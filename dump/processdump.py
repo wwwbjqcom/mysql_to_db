@@ -14,12 +14,12 @@ from lib.InitDB import InitMyDB
 
 
 class ThreadDump(threading.Thread):
-    def __init__(self, queue, dump_pro,start_num,end_num,database,table,idx,pri_idx):
+    def __init__(self, queue, dump_pro,chunk_range,database,table,idx,pri_idx):
         threading.Thread.__init__(self)
         self.queue = queue
         self.dump_pro = dump_pro
-        self.start_num = start_num
-        self.end_num = end_num
+        self.start_num = chunk_range[0]
+        self.end_num = chunk_range[1]
         self.database = database
         self.table = table
         self.idx = idx
@@ -125,7 +125,7 @@ class processdump(Prepare):
                 self.close(thread['cur'], thread['conn'])
         return binlog_file,binlog_pos
 
-    def __dump_go(self,database,tablename):
+    def __dump_go(self,database,tablename,idx_name=None,pri_idx=None):
         '''
         单线程导出函数
         :param database:
@@ -134,7 +134,8 @@ class processdump(Prepare):
         '''
         stat = self.dump.prepare_structe(database=database, tablename=tablename)
         if stat:
-            idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
+            if idx_name is None and pri_idx is None:
+                idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
             self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name,pri_idx=pri_idx)
         else:
             Logging(msg='Initialization structure error', level='error')
@@ -143,30 +144,30 @@ class processdump(Prepare):
     def __mul_dump_go(self,database,tablename):
         '''
         多线程导出函数
-        通过表总条数按线程数拆分为多个chunk
+        尽量选择合适的索引，通过索引值拆分每个线程数操作的值区间
         :param database:
         :param tablename:
         :return:
         '''
-        chunks = self.get_chunks(cur=self.cur, databases=database, tables=tablename)
-        stat = self.dump.prepare_structe(database=database, tablename=tablename)
-        if stat:
-            idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
+        idx_name, pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
 
-            __start_num = 0
-            __limit_num = chunks
-            for t in range(len(self.thread_list)):
-                if len(self.thread_list) - t == 1:
-                    __limit_num = None
-                dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
-                            des_cur=self.des_thread_list[t]['cur'])
-                __dict_ = [self.queue, dump, __start_num, __limit_num, database, tablename, idx_name,pri_idx]
-                t = ThreadDump(*__dict_)
-                t.start()
-                __start_num += chunks
+        chunks_list,uli = self.get_chunks(cur=self.cur, databases=database, tables=tablename,index_name=idx_name)
+        if uli:
+            '''多线程'''
+            if self.dump.prepare_structe(database=database, tablename=tablename):
+                for t in range(len(self.thread_list)):
+                    dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
+                                des_cur=self.des_thread_list[t]['cur'])
+                    __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx]
+                    t = ThreadDump(*__dict_)
+                    t.start()
+            else:
+                Logging(msg='Initialization structure error', level='error')
+                sys.exit()
+
         else:
-            Logging(msg='Initialization structure error', level='error')
-            sys.exit()
+            '''单线程'''
+            self.__dump_go(database,tablename,idx_name,pri_idx)
 
     def __get_queue(self):
         '''

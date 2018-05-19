@@ -101,29 +101,58 @@ class Prepare(object):
             conn.close()
         except:
             pass
-    def get_chunks(self,cur,databases,tables):
+    def get_chunks(self,cur,databases,tables,index_name):
         '''
-        获取每个线程分块大小
+        获取每个线程分块在索引中的数据范围
+        优先判断数据总量，如果数据总条数小于并发线程数据将使用单线程
         :param cur:
         :param databases:
         :param tables:
         :return:
         '''
-        cur.execute('select count(*) as count from {}.{}'.format(databases,tables))
+        cur.execute('select {} as count from {}.{}'.format(index_name,databases,tables))
         result = cur.fetchall()
-        total_rows = result[0]['count']
-        chunk = int(total_rows / len(self.thread_list))
-        return chunk
+        total_rows = len(result)
+        if total_rows < len(self.thread_list):
+            return total_rows,'signle'
+        '''
+        cur.execute('select min({}),max({}) from {}.{}'.format(index_name,index_name,databases,tables))
+        re_min_max = cur.fetchall()
+        min = re_min_max[0]['min']
+        max = re_min_max[0]['max']
+        '''
+        chunk = int(total_rows/len(self.thread_list))
+
+        result_value = [row[index_name] for row in result]
+        '''记录每个分块索引字段最大最小值'''
+        chunks_list = []
+        start = 0
+        end = chunk
+        '''_tmp记录每个块的最大值，由于可能存在重复值，所以在下一个块计算时会进行比较'''
+        _tmp = None
+        for i in range(len(self.thread_list)):
+            a = result_value[start:end]
+            start += chunk
+            end += chunk
+            if _tmp:
+               a = [v for v in a if a != _tmp]
+            if end > total_rows:
+                chunks_list.append([a[0],result_value[-1]])
+            else:
+                chunks_list.append([a[0],a[-1]])
+            _tmp = a[-1]
+        return chunks_list,None
 
 
     def check_pri(self,cur,db,table):
         '''
         该函数获取查询数据时where条件的字段
-        首先获取表主键，如果主键有自增字段将直接使用
-        如果主键为复合主键将不使用主键字段，尝试获取一个单列唯一索引
-        因为复合主键或唯一索引，判断基础都为字段组合唯一
-        这种情况下很难作为条件范围取值，自增也不例外
-        所以在线导出必须要有单列主键或单列唯一索引
+        获取索引字段优先级：
+            首先获取表主键，如果主键有自增字段将直接使用
+            如无自增字段选择主键第一个字段
+            无主键选择一个唯一索引字段
+            都没有的情况下选择一个过滤性最好的字段
+        没有合适的索引可供选择将直接退出
         :param cur:
         :param db:
         :param table:
@@ -136,42 +165,32 @@ class Prepare(object):
         sql = 'SHOW INDEX FROM {}.{}'.format(db, table)
         cur.execute(sql)
         result = cur.fetchall()
-        _tmp_key_info = {}
+        _tmp_key_name = None
+        _tmp_key_card = 0
         if result:
             for idx in result:
+                if idx['Key_name'] != 'PRIMARY':
+                    return idx['Column_name'],self.__get_col_info(cur,db,table,idx['Column_name'])
+            for idx in result:
                 if idx['Non_unique'] == 0 and idx['Key_name'] != 'PRIMARY':
-                    if idx['Key_name'] in _tmp_key_info:
-                        _tmp_key_info['Key_name'] += [idx['Column_name']]
-                    else:
-                        _tmp_key_info['Key_name'] = [idx['Column_name']]
+                    return idx['Column_name'], self.__get_col_info(cur, db, table, idx['Column_name'])
+            for idx in result:
+                if idx['Cardinality'] > _tmp_key_card:
+                    _tmp_key_name,_tmp_key_card = idx['Column_name'],idx['Cardinality']
 
-            uni_col_name = [_tmp_key_info[idx_name] for idx_name in _tmp_key_info if len(_tmp_key_info[idx_name]) == 1][0][0]
-            uni_key_info = self.__get_col_info(cur=cur,db=db,table=table,col=uni_col_name)
-            if uni_key_info:
-                return uni_col_name,uni_key_info
-
+            return _tmp_key_name,self.__get_col_info(cur, db, table, _tmp_key_name)
         Logging(msg='there is no suitable index to choose from {}.{},'.format(db,table),level='error')
         sys.exit()
 
     def __get_pri_column_idx(self,cur,db,table):
-        '''args顺序 database、tablename'''
+        '''返回自增字段信息'''
         sql = 'select COLUMN_NAME,COLUMN_KEY,COLUMN_TYPE,EXTRA from INFORMATION_SCHEMA.COLUMNS where table_schema=%s and table_name=%s order by ORDINAL_POSITION;'
         cur.execute(sql, args=[db,table])
         result = cur.fetchall()
-        _tmp_pk_info = {}
         for idex, row in enumerate(result):
             if row['COLUMN_KEY'] == 'PRI':
-                if row['COLUMN_NAME'] in _tmp_pk_info:
-                    _tmp_pk_info[row['COLUMN_KEY']] += [row['COLUMN_NAME'],idex]
-                else:
-                    _tmp_pk_info[row['COLUMN_KEY']] = [row['COLUMN_NAME'],idex]
-
-        for column_key in _tmp_pk_info:
-            if len(_tmp_pk_info[column_key]) == 2:
-                pk_col_name = _tmp_pk_info[column_key][0]
-                pk_key_info = [{_tmp_pk_info[column_key][0]:_tmp_pk_info[column_key][1]}]
-                return pk_col_name,pk_key_info
-
+                if row['EXTRA'] == 'auto_incremet':
+                    return row['COLUMN_NAME'],[{row['COLUMN_NAME']:idex}]
         return None,None
 
     def __get_col_info(self,cur,db,table,col):
