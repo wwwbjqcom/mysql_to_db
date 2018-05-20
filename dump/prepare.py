@@ -146,9 +146,11 @@ class Prepare(object):
             _t = 0
             for v in range(_n+1):
                 if v == _n:
-                    _tmp.append(data_list[_t:-1])
+                    _all = data_list[_t:-1]
+                    _tmp.append([_all[0],_all[1]])
                 else:
-                    _tmp.append(data_list[_t:_t+10000])
+                    _all = data_list[_t:_t+10000]
+                    _tmp.append([_all[0],_all[-1]])
                 _t += 10000
         else:
             _tmp.append(data_list)

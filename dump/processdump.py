@@ -155,7 +155,7 @@ class processdump(Prepare):
         idx_name, pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
 
         chunks_list,uli = self.get_chunks(cur=self.cur, databases=database, tables=tablename,index_name=idx_name)
-        bytes_col_list = self.check_byte_col(cur=self.cur,db=database,table=tablename)
+        #bytes_col_list = self.check_byte_col(cur=self.cur,db=database,table=tablename)
         if chunks_list is None:
             return None
         if uli:
@@ -164,7 +164,7 @@ class processdump(Prepare):
                 for t in range(len(self.thread_list)):
                     dump = Dump(cur=self.thread_list[t]['cur'], des_conn=self.des_thread_list[t]['conn'],
                                 des_cur=self.des_thread_list[t]['cur'])
-                    __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx,bytes_col_list]
+                    __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx]
                     _t = ThreadDump(*__dict_)
                     _t.start()
             else:
@@ -173,7 +173,7 @@ class processdump(Prepare):
 
         else:
             '''单线程'''
-            self.__dump_go(database,tablename,idx_name,pri_idx,chunks_list,bytes_col_list)
+            self.__dump_go(database,tablename,idx_name,pri_idx,chunks_list)
 
     def __get_queue(self):
         '''
