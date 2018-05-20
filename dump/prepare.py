@@ -110,20 +110,15 @@ class Prepare(object):
         :param tables:
         :return:
         '''
-        cur.execute('select {} from {}.{} order by {}'.format(index_name,databases,tables,index_name))
+        cur.execute('select {} from {}.{} group by {} order by {}'.format(index_name,databases,tables,index_name,index_name))
         result = cur.fetchall()
         total_rows = len(result)
+        result_value = [row[index_name] for row in result]
         if total_rows == 0:
             return  None,None
         if total_rows < len(self.thread_list):
-            cur.execute('select min({}) as min,max({}) as max from {}.{}'.format(index_name, index_name, databases, tables))
-            re_min_max = cur.fetchall()
-            min = re_min_max[0]['min']
-            max = re_min_max[0]['max']
-            return [min,max],None
+            return result_value,None
 
-        result_value = [row[index_name] for row in result]
-        result_value = sorted(set(result_value), key=result_value.index)
         chunk = int(result_value/(len(self.thread_list)))
         '''记录每个分块索引字段最大最小值'''
         chunks_list = []
@@ -144,10 +139,10 @@ class Prepare(object):
         :param data_list:
         :return:
         '''
-        l = len(data_list)
+        _l = len(data_list)
         _tmp = []
-        if l > 10000:
-            _n = int(l/10000)
+        if _l > 10000:
+            _n = int(_l/10000)
             _t = 0
             for v in range(_n+1):
                 if v == _n:
