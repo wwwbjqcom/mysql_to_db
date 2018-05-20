@@ -51,6 +51,7 @@ class Dump:
 
     def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,end_num=None,bytes_col_list=None):
         __init_stat = []
+        limit_num = 0
         while True:
             '''
             第一次使用分块大小limit N,M, N代表起始个数位置（chunks大小），M代表条数
@@ -58,15 +59,19 @@ class Dump:
             每个线程查询一次累加条数当剩余条数小于1000时调用__get_from_source_db_list
             每个chunk剩余条数大于1000固定调用__get_from_source_db_limit1000
             '''
-
+            sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
+                                                                                               idx, idx, idx, limit_num)
+            self.__get_from_source_db_limit1000(sql=sql, args_value=[start_num, end_num])
+            '''
             if __init_stat:
-                sql = 'SELECT * FROM {}.{} WHERE {}>%s and {}<=%s ORDER BY {} LIMIT %s'.format(database, tablename,
-                                                                                                idx, idx, idx)
-                self.__get_from_source_db_limit1000(sql=sql, args_value=[__init_stat[0], end_num])
+                sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
+                                                                                                idx, idx, idx,limit_num)
+                self.__get_from_source_db_limit1000(sql=sql, args_value=[start_num, end_num])
             else:
-                sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT %s'.format(database, tablename,
-                                                                                                idx, idx, idx)
+                sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
+                                                                                                idx, idx, idx,limit_num)
                 self.__get_from_source_db_limit1000(sql=sql,args_value=[start_num,end_num])
+            '''
             '''======================================================================================================'''
 
             '''
@@ -102,18 +107,22 @@ class Dump:
             '''
             获取每次获取数据的最大主键或唯一索引值
             '''
+            '''
             __init_stat = []
             _end_value = self.result[-1]
             for col in pri_idx:
                 _a = [v for v in col.keys()]
                 __init_stat.append(_end_value[_a[0]])
+            '''
             '''========================================='''
 
             '''
             每次循环结束计算该线程还剩未处理的条数（limit_num）
             当返回条数少于1000条时将退出整个循环
             '''
-            if len(self.result) < 1000:
+            return_len = len(self.result)
+            limit_num += return_len
+            if return_len < 1000:
                 break
             '''=========================================='''
 
