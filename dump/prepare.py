@@ -114,6 +114,7 @@ class Prepare(object):
         result = cur.fetchall()
         total_rows = len(result)
         result_value = [row[index_name] for row in result]
+        #result_value = list(set(result_value))
         if total_rows == 0:
             return  None,None
         if total_rows < len(self.thread_list):
@@ -147,7 +148,7 @@ class Prepare(object):
             for v in range(_n+1):
                 if v == _n:
                     _all = data_list[_t:-1]
-                    _tmp.append([_all[0],_all[1]])
+                    _tmp.append([_all[0],_all[-1]])
                 else:
                     _all = data_list[_t:_t+10000]
                     _tmp.append([_all[0],_all[-1]])
