@@ -117,9 +117,9 @@ class Prepare(object):
         if total_rows == 0:
             return  None,None
         if total_rows < len(self.thread_list):
-            return result_value,None
+            return [[result_value[0],result_value[-1]]],None
 
-        chunk = int(result_value/(len(self.thread_list)))
+        chunk = int(total_rows/(len(self.thread_list)))
         '''记录每个分块索引字段最大最小值'''
         chunks_list = []
         start = 0
