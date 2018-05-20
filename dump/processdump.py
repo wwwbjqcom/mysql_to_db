@@ -14,7 +14,7 @@ from lib.InitDB import InitMyDB
 
 
 class ThreadDump(threading.Thread):
-    def __init__(self, queue, dump_pro,chunk_list,database,table,idx,pri_idx,bytes_col_list):
+    def __init__(self, queue, dump_pro,chunk_list,database,table,idx,pri_idx,bytes_col_list=None):
         threading.Thread.__init__(self)
         self.queue = queue
         self.dump_pro = dump_pro
