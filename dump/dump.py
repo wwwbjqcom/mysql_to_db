@@ -49,10 +49,8 @@ class Dump:
         return True
 
 
-    def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,end_num=None,bytes_col_list=None):
-
-        split_value_list = self.__split_data(start_num,end_num,idx,database,tablename)
-        for list in split_value_list:
+    def dump_to_new_db(self,database,tablename,idx,pri_idx,chunk_list=None,bytes_col_list=None):
+        for list in chunk_list:
             start_num = list[0]
             end_num = list[1]
             limit_num = 0

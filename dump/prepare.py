@@ -122,27 +122,44 @@ class Prepare(object):
             max = re_min_max[0]['max']
             return [min,max],None
 
-        chunk = int(total_rows/len(self.thread_list))
-
         result_value = [row[index_name] for row in result]
+        result_value = sorted(set(result_value), key=result_value.index)
+        chunk = int(result_value/(len(self.thread_list)))
         '''记录每个分块索引字段最大最小值'''
         chunks_list = []
         start = 0
-        end = chunk
         '''_tmp记录每个块的最大值，由于可能存在重复值，所以在下一个块计算时会进行比较'''
-        _tmp = None
         for i in range(len(self.thread_list)):
-            a = result_value[start:end]
-            start += chunk
-            end += chunk
-            if _tmp:
-               a = [v for v in a if v != _tmp]
-            if end > total_rows:
-                chunks_list.append([a[0],result_value[-1]])
+            if i == len(self.thread_list) - 1:
+                a = result_value[start:-1]
             else:
-                chunks_list.append([a[0],a[-1]])
-            _tmp = a[-1]
+                a = result_value[start:start+chunk]
+            chunks_list.append(self.__split_data(a))
+            start += chunk
         return chunks_list,True
+
+    def __split_data(self,data_list):
+        '''
+        按10000一个区间拆分每个线程执行的数据
+        :param data_list:
+        :return:
+        '''
+        l = len(data_list)
+        _tmp = []
+        if l > 10000:
+            _n = int(l/10000)
+            _t = 0
+            for v in range(_n+1):
+                if v == _n:
+                    _tmp.append(data_list[_t:-1])
+                else:
+                    _tmp.append(data_list[_t:_t+10000])
+                _t += 10000
+        else:
+            _tmp.append(data_list)
+        return _tmp
+
+
 
     def get_max_min(self,cur,databases,tables,index_name):
         cur.execute('select min({}) as min,max({}) as max from {}.{}'.format(index_name, index_name, databases, tables))

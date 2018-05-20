@@ -14,12 +14,11 @@ from lib.InitDB import InitMyDB
 
 
 class ThreadDump(threading.Thread):
-    def __init__(self, queue, dump_pro,chunk_range,database,table,idx,pri_idx,bytes_col_list):
+    def __init__(self, queue, dump_pro,chunk_list,database,table,idx,pri_idx,bytes_col_list):
         threading.Thread.__init__(self)
         self.queue = queue
         self.dump_pro = dump_pro
-        self.start_num = chunk_range[0]
-        self.end_num = chunk_range[1]
+        self.chunk_list = chunk_list
         self.database = database
         self.table = table
         self.idx = idx
@@ -27,7 +26,7 @@ class ThreadDump(threading.Thread):
         self.bytes_col_list = bytes_col_list
     def run(self):
         try:
-            __tuple_ = [self.database,self.table,self.idx,self.pri_idx,self.start_num,self.end_num,self.bytes_col_list]
+            __tuple_ = [self.database,self.table,self.idx,self.pri_idx,self.chunk_list,self.bytes_col_list]
             self.dump_pro.dump_to_new_db(*__tuple_)
             self.queue.put('1001')
         except:
@@ -140,7 +139,7 @@ class processdump(Prepare):
                 bytes_col_list = self.check_byte_col(cur=self.cur, db=database, table=tablename)
                 max_min = self.get_max_min(cur=self.cur,database=database,tables=tablename,index_name=idx_name)
             self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name, pri_idx=pri_idx,
-                                         start_num=max_min[0],end_num=max_min[1],bytes_col_list=bytes_col_list)
+                                     chunk_list=max_min,bytes_col_list=bytes_col_list)
         else:
             Logging(msg='Initialization structure error', level='error')
             sys.exit()
