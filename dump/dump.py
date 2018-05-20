@@ -50,81 +50,58 @@ class Dump:
 
 
     def dump_to_new_db(self,database,tablename,idx,pri_idx,start_num=None,end_num=None,bytes_col_list=None):
-        __init_stat = []
-        limit_num = 0
-        while True:
-            '''
-            第一次使用分块大小limit N,M, N代表起始个数位置（chunks大小），M代表条数
-            第一次执行之后获取最大主键或唯一索引值范围查找
-            每个线程查询一次累加条数当剩余条数小于1000时调用__get_from_source_db_list
-            每个chunk剩余条数大于1000固定调用__get_from_source_db_limit1000
-            '''
-            sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
-                                                                                               idx, idx, idx, limit_num)
-            self.__get_from_source_db_limit1000(sql=sql, args_value=[start_num, end_num])
-            '''
-            if __init_stat:
+
+        split_value_list = self.__split_data(start_num,end_num,idx,database,tablename)
+        for list in split_value_list:
+            start_num = list[0]
+            end_num = list[1]
+            limit_num = 0
+            while True:
+                '''
+                第一次使用分块大小limit N,M, N代表起始个数位置（chunks大小），M代表条数
+                第一次执行之后获取最大主键或唯一索引值范围查找
+                每个线程查询一次累加条数当剩余条数小于1000时调用__get_from_source_db_list
+                每个chunk剩余条数大于1000固定调用__get_from_source_db_limit1000
+                '''
                 sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
-                                                                                                idx, idx, idx,limit_num)
+                                                                                                   idx, idx, idx, limit_num)
                 self.__get_from_source_db_limit1000(sql=sql, args_value=[start_num, end_num])
-            else:
-                sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
-                                                                                                idx, idx, idx,limit_num)
-                self.__get_from_source_db_limit1000(sql=sql,args_value=[start_num,end_num])
-            '''
-            '''======================================================================================================'''
+                '''======================================================================================================'''
 
-            '''
-            拼接1000行数据为pymysql格式化列表
-            如果返回数据为空直接退出
-            '''
-            all_value = []
-            if self.result:
-                _len = len(self.result[0])
-                _num = len(self.result)
-                for row in self.result:
-                    value = [v for v in row.values()]
-                    if bytes_col_list:
-                        for __i in bytes_col_list:
-                            if value[__i]:
-                                value[__i] = pymysql.Binary(value[__i])
-                    all_value += value
-            else:
-                Logging(msg='return value is empty',level='warning')
-                break
+                '''
+                拼接1000行数据为pymysql格式化列表
+                如果返回数据为空直接退出
+                '''
+                all_value = []
+                if self.result:
+                    _len = len(self.result[0])
+                    _num = len(self.result)
+                    for row in self.result:
+                        all_value += row.values()
+                else:
+                    Logging(msg='return value is empty',level='warning')
+                    break
 
-            sql = 'INSERT INTO {}.{} VALUES{}'.format(database,tablename,self.__combination_value_format(_len=_len,_num=_num))
+                sql = 'INSERT INTO {}.{} VALUES{}'.format(database,tablename,self.__combination_value_format(_len=_len,_num=_num))
 
-            try:
-                self.des_mysql_cur.execute(sql,all_value)
-                self.des_mysql_conn.commit()
-            except pymysql.Warning:
-                Logging(msg=traceback.format_list(),level='warning')
-            except pymysql.Error:
-                Logging(msg=traceback.format_list(),level='error')
-                self.__retry_(sql,all_value)
+                try:
+                    self.des_mysql_cur.execute(sql,all_value)
+                    self.des_mysql_conn.commit()
+                except pymysql.Warning:
+                    Logging(msg=traceback.format_list(),level='warning')
+                except pymysql.Error:
+                    Logging(msg=traceback.format_list(),level='error')
+                    self.__retry_(sql,all_value)
 
-            '''
-            获取每次获取数据的最大主键或唯一索引值
-            '''
-            '''
-            __init_stat = []
-            _end_value = self.result[-1]
-            for col in pri_idx:
-                _a = [v for v in col.keys()]
-                __init_stat.append(_end_value[_a[0]])
-            '''
-            '''========================================='''
-
-            '''
-            每次循环结束计算该线程还剩未处理的条数（limit_num）
-            当返回条数少于1000条时将退出整个循环
-            '''
-            return_len = len(self.result)
-            limit_num += return_len
-            if return_len < 1000:
-                break
-            '''=========================================='''
+                '''
+                每次循环结束计算该线程还剩未处理的条数（limit_num）
+                当返回条数少于1000条时将退出整个循环
+                '''
+                return_len = len(self.result)
+                limit_num += return_len
+                if return_len < 1000:
+                    break
+                '''=========================================='''
 
     def __join_pri_where(self,pri_key_info):
         '''
@@ -169,6 +146,43 @@ class Dump:
         except pymysql.Error:
             Logging(msg=traceback.format_list(),level='error')
             sys.exit()
+
+    def __split_data(self,start,end,idx_name,db,table):
+        '''
+        该函数主要作用是在数据量大时在各个线程中继续对数据进行分区
+        在大于10000条时才会进行继续拆分
+        用10000作为拆分的基数条件获取模糊的分区数
+        再利用去重后的索引值获取每个分区最大最小值
+        :param start:
+        :param end:
+        :param idx_name:
+        :param db:
+        :param table:
+        :return:
+        '''
+        sql = 'select {} from {}.{} where {}>=%s and {}<=%s'.format(idx_name,db,table,idx_name,idx_name)
+        self.mysql_cur.execute(sql,args=[start,end])
+        result = self.mysql_cur.fetchall()
+        values = [v[idx_name] for v in result]
+        total_rows = len(values)
+        split_list = []
+        if total_rows > 20000:
+            split_chunks = int(total_rows/10000)
+            _sort_values = sorted(set(values), key=values.index)
+            _nums = int(_sort_values/split_chunks)
+            _n = 0
+            for v in range(split_chunks):
+                if v == (split_chunks -1):
+                    _t = _sort_values[_n:-1]
+                    split_list.append([_t[0],_t[-1]])
+                else:
+                    _t = _sort_values[_n:_n+_nums]
+                    split_list.append([_t[0],_t[-1]])
+                _n += _nums
+
+        else:
+            split_list.append[start,end]
+        return split_list
 
     def __combination_value_format(self,_len,_num):
         '''拼接格式化字符'''
