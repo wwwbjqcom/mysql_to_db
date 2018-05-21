@@ -162,9 +162,12 @@ class Prepare(object):
     def get_max_min(self,cur,databases,tables,index_name):
         cur.execute('select min({}) as min,max({}) as max from {}.{}'.format(index_name, index_name, databases, tables))
         re_min_max = cur.fetchall()
-        min = re_min_max[0]['min']
-        max = re_min_max[0]['max']
-        return [min, max]
+        if re_min_max:
+            min = re_min_max[0]['min']
+            max = re_min_max[0]['max']
+            return [min, max]
+        else:
+            return None
 
     def check_pri(self,cur,db,table):
         '''
@@ -191,13 +194,13 @@ class Prepare(object):
         _tmp_key_card = 0
         if result:
             for idx in result:
-                if idx['Key_name'] == 'PRIMARY':
+                if idx['Key_name'] == 'PRIMARY' and idx['Seq_in_index'] == 1:
                     return idx['Column_name'],self.__get_col_info(cur,db,table,idx['Column_name'])
             for idx in result:
-                if idx['Non_unique'] == 0 and idx['Key_name'] != 'PRIMARY':
+                if idx['Non_unique'] == 0 and idx['Key_name'] != 'PRIMARY' and idx['Seq_in_index'] == 1:
                     return idx['Column_name'], self.__get_col_info(cur, db, table, idx['Column_name'])
             for idx in result:
-                if idx['Cardinality'] > _tmp_key_card:
+                if idx['Seq_in_index'] == 1 and idx['Cardinality'] > _tmp_key_card:
                     _tmp_key_name,_tmp_key_card = idx['Column_name'],idx['Cardinality']
             if _tmp_key_name:
                 return _tmp_key_name,self.__get_col_info(cur, db, table, _tmp_key_name)

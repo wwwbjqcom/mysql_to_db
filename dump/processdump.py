@@ -138,7 +138,8 @@ class processdump(Prepare):
                 idx_name,pri_idx = self.check_pri(cur=self.cur, db=database, table=tablename)
                 bytes_col_list = self.check_byte_col(cur=self.cur, db=database, table=tablename)
                 max_min = self.get_max_min(cur=self.cur,database=database,tables=tablename,index_name=idx_name)
-            self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name, pri_idx=pri_idx,
+            if max_min:
+                self.dump.dump_to_new_db(database=database, tablename=tablename, idx=idx_name, pri_idx=pri_idx,
                                      chunk_list=max_min,bytes_col_list=bytes_col_list)
         else:
             Logging(msg='Initialization structure error', level='error')
@@ -157,7 +158,7 @@ class processdump(Prepare):
         chunks_list,uli = self.get_chunks(cur=self.cur, databases=database, tables=tablename,index_name=idx_name)
         #bytes_col_list = self.check_byte_col(cur=self.cur,db=database,table=tablename)
         if chunks_list is None:
-            return None
+            Logging(msg='this chunks_list is None,maybe this table not data',level='warning')
         if uli:
             '''多线程'''
             if self.dump.prepare_structe(database=database, tablename=tablename):
