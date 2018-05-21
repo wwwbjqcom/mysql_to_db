@@ -63,7 +63,7 @@ class Dump:
                 '''
                 sql = 'SELECT * FROM {}.{} WHERE {}>=%s and {}<=%s ORDER BY {} LIMIT {},%s'.format(database, tablename,
                                                                                                    idx, idx, idx, limit_num)
-                self.__get_from_source_db_limit5000(sql=sql, args_value=[start_num, end_num])
+                self.__get_from_source_db_limit2000(sql=sql, args_value=[start_num, end_num])
                 '''======================================================================================================'''
 
                 '''
@@ -97,7 +97,7 @@ class Dump:
                 '''
                 return_len = len(self.result)
                 limit_num += return_len
-                if return_len < 5000:
+                if return_len < 2000:
                     break
                 '''=========================================='''
 
@@ -134,12 +134,12 @@ class Dump:
             Logging(msg=traceback.format_list(),level='error')
             sys.exit()
 
-    def __get_from_source_db_limit5000(self,sql,args_value):
+    def __get_from_source_db_limit2000(self,sql,args_value):
         try:
             if args_value:
-                self.mysql_cur.execute(sql, args_value + [5000])
+                self.mysql_cur.execute(sql, args_value + [2000])
             else:
-                self.mysql_cur.execute(sql,5000)
+                self.mysql_cur.execute(sql,2000)
             self.result = self.mysql_cur.fetchall()
         except pymysql.Error:
             Logging(msg=traceback.format_list(),level='error')
