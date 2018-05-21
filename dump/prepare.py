@@ -127,7 +127,7 @@ class Prepare(object):
         '''_tmp记录每个块的最大值，由于可能存在重复值，所以在下一个块计算时会进行比较'''
         for i in range(len(self.thread_list)):
             if i == len(self.thread_list) - 1:
-                a = result_value[start:-1]
+                a = result_value[start:]
             else:
                 a = result_value[start:start+chunk]
             chunks_list.append(self.__split_data(a))
@@ -145,16 +145,16 @@ class Prepare(object):
         if _l > 10000:
             _n = int(_l/10000)
             _t = 0
-            for v in range(_n+1):
-                if v == _n:
-                    _all = data_list[_t:-1]
+            for v in range(_n):
+                if v == (_n-1):
+                    _all = data_list[_t:]
                     _tmp.append([_all[0],_all[-1]])
                 else:
                     _all = data_list[_t:_t+10000]
                     _tmp.append([_all[0],_all[-1]])
                 _t += 10000
         else:
-            _tmp.append(data_list)
+            _tmp.append([data_list[0],data_list[-1]])
         return _tmp
 
 
