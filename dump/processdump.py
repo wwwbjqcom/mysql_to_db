@@ -96,13 +96,13 @@ class processdump(Prepare):
                     for tablename in self.tables:
                         _parmeter = [database,tablename]
                         self.__mul_dump_go(*_parmeter)
-                        self.__get_queue()
+
                 else:
                     tables = self.get_tables(cur=self.cur, db=database)
                     for tablename in tables:
                         _parmeter = [database, tablename]
                         self.__mul_dump_go(*_parmeter)
-                        self.__get_queue()
+
         else:
             '''单线程导出'''
             for database in self.databases:
@@ -158,7 +158,7 @@ class processdump(Prepare):
         chunks_list,uli = self.get_chunks(cur=self.cur, databases=database, tables=tablename,index_name=idx_name)
         #bytes_col_list = self.check_byte_col(cur=self.cur,db=database,table=tablename)
         if chunks_list is None:
-            Logging(msg='this chunks_list is None,maybe this table not data',level='warning')
+            Logging(msg='this table {} chunks_list is None,maybe this table not data'.format(tablename),level='warning')
         if uli:
             '''多线程'''
             if self.dump.prepare_structe(database=database, tablename=tablename):
@@ -168,6 +168,7 @@ class processdump(Prepare):
                     __dict_ = [self.queue, dump, chunks_list[t], database, tablename, idx_name, pri_idx]
                     _t = ThreadDump(*__dict_)
                     _t.start()
+                self.__get_queue()
             else:
                 Logging(msg='Initialization structure error', level='error')
                 sys.exit()
@@ -175,6 +176,7 @@ class processdump(Prepare):
         else:
             '''单线程'''
             self.__dump_go(database,tablename,idx_name,pri_idx,chunks_list)
+
 
     def __get_queue(self):
         '''
